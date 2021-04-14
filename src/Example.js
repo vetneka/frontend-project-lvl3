@@ -6,7 +6,7 @@ export default class Example {
   }
 
   init() {
-    this.element.textContent = 'hello, world!';
+    this.element.textContent = 'Hello, rss agregator!';
     console.log('ehu!');
   }
 }
