@@ -1,6 +1,7 @@
 const path = require('path');
 
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
   entry: {
@@ -14,6 +15,33 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.(sc|c)ss$/,
+        use: [
+          MiniCssExtractPlugin.loader,
+          'css-loader',
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                plugins: [
+                  [
+                    'postcss-preset-env',
+                    {
+                      stage: 3,
+                      features: {
+                        'nesting-rules': true,
+                      },
+                      browsers: 'last 5 versions',
+                    },
+                  ],
+                ],
+              },
+            },
+          },
+          'sass-loader',
+        ],
+      },
+      {
         test: /\.js$/,
         exclude: /node_modules/,
         use: {
@@ -25,6 +53,9 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: 'template.html',
+    }),
+    new MiniCssExtractPlugin({
+      filename: 'style.css',
     }),
   ],
   devServer: {
