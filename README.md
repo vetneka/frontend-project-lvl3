@@ -2,8 +2,10 @@
 [![Build Status](https://github.com/vetneka/frontend-project-lvl3/workflows/build/badge.svg)](https://github.com/vetneka/frontend-project-lvl3/actions/workflows/build.yml)
 [![Maintainability](https://api.codeclimate.com/v1/badges/61b1d82146e8b9eea44c/maintainability)](https://codeclimate.com/github/vetneka/frontend-project-lvl3/maintainability)
 
-# RSS Agregator 
+# RSS Agregator
 > study project at hexlet.io
+
+> Deploy link on Vercel [rss-agregator.app](https://frontend-project-lvl3-vetneka.vercel.app/)
 
 <br>
 
