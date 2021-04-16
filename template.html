@@ -15,7 +15,7 @@
               <h1 class="display-4">RSS Agregator</h1>
               <p class="lead">Начните читать RSS сегодня! Это легко, это красиво.</p>
 
-              <form action="#" method="GET">
+              <form class="feed-form" action="#" method="GET" autocomplete="off">
                 <div class="form-row justify-content-center">
                   <div class="form-group col-12 col-sm mb-sm-0">
                     <label for="add-rss" class="sr-only">Добавить rss</label>
@@ -28,6 +28,7 @@
               </form>
 
               <p class="text-secondary my-1">Пример: https://ru.hexlet.io/lessons.rss</p>
+              <p class="feedback my-1"></p>
             </div>
           </div>
         </div>
@@ -37,7 +38,16 @@
         <div class="container">
           <div class="row">
             <div class="col-md-10 col-lg-8 mx-auto">
-              Список RSS каналов
+              <div class="row">
+                <div class="col feeds">
+                  Каналы
+                </div>
+              </div>
+              <div class="row">
+                <div class="col posts">
+                  Посты
+                </div>
+              </div>
             </div>
           </div>
         </div>
