@@ -1,66 +1,159 @@
 import * as yup from 'yup';
 import onChange from 'on-change';
 
+const successMessages = {
+  addRSS: 'RSS успешно добавлен',
+};
+
+const errorMessages = {
+  network: 'Ошибка сети',
+  duplicateRSS: 'RSS уже существует',
+  invalidRSS: 'Ресурс не содержит валидный RSS',
+  invalidURL: 'Ссылка должна быть валидным URL',
+};
+
+const formProcessStates = {
+  filling: 'filling',
+  sending: 'sending',
+  failed: 'failed',
+  finished: 'finished',
+};
+
 const scheme = yup.string().url().required();
 
-const isValidFeed = (data) => data.querySelector('parsererror') === null;
+const getRSS = (url) => `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}`;
+const isValidURL = (url) => scheme.isValidSync(url);
+const isValidFeed = (xmlDOM) => xmlDOM.querySelector('parsererror') === null;
+const isDuplicateRSS = (state, url) => state.feeds.find((feed) => feed.url === url) !== undefined;
+const parseXML = (string) => {
+  const parser = new DOMParser();
+  const xmlDOM = parser.parseFromString(string, 'application/xml');
+  if (!isValidFeed(xmlDOM)) {
+    throw new Error(errorMessages.invalidRSS);
+  }
+
+  return xmlDOM;
+};
+
+const createPost = (data) => {
+  const titleElement = data.querySelector('title');
+  const linkElement = data.querySelector('link');
+
+  return {
+    title: titleElement.textContent,
+    link: linkElement.textContent,
+  };
+};
+
+const createFeed = (data, url) => {
+  const titleElement = data.querySelector('title');
+  const descriptionElement = data.querySelector('description');
+  const postElements = data.querySelectorAll('item');
+
+  return {
+    title: titleElement.textContent,
+    description: descriptionElement.textContent,
+    url,
+    posts: [...postElements].map(createPost),
+  };
+};
+
+const render = (state) => {
+  const feedsContainer = document.querySelector('.feeds');
+  const postsContainer = document.querySelector('.posts');
+  feedsContainer.innerHTML = '';
+  postsContainer.innerHTML = '';
+
+  const feedsList = document.createElement('ul');
+  feedsList.classList.add('list-group');
+  state.feeds.forEach((feed) => {
+    const listItem = document.createElement('li');
+    listItem.classList.add('list-group-item');
+
+    const feedTitle = document.createElement('h3');
+    feedTitle.textContent = feed.title;
+    feedTitle.classList.add('h3');
+
+    const feedDescription = document.createElement('p');
+    feedDescription.classList.add('mb-0');
+    feedDescription.textContent = feed.description;
+
+    listItem.append(feedTitle, feedDescription);
+    feedsList.prepend(listItem);
+  });
+
+  const postsList = document.createElement('ul');
+  postsList.classList.add('list-group');
+  state.feeds.forEach((feed) => {
+    const postListFragment = document.createDocumentFragment();
+    feed.posts.forEach((post) => {
+      const listItem = document.createElement('li');
+      listItem.classList.add('list-group-item');
+
+      const postLink = document.createElement('a');
+      postLink.textContent = post.title;
+      postLink.href = post.link;
+
+      listItem.append(postLink);
+      postListFragment.append(listItem);
+    });
+    postsList.prepend(postListFragment);
+  });
+
+  feedsContainer.append(feedsList);
+  postsContainer.append(postsList);
+};
+
+const updateForm = (state, formElements) => {
+  const { input, submitButton, messageContainer } = formElements;
+
+  if (state.form.valid) {
+    input.classList.remove('is-invalid');
+  } else {
+    input.classList.add('is-invalid');
+  }
+
+  if (state.form.processState === formProcessStates.sending) {
+    input.readOnly = true;
+    submitButton.disabled = true;
+  } else {
+    input.readOnly = false;
+    submitButton.disabled = false;
+  }
+
+  if (state.form.processState === formProcessStates.finished) {
+    messageContainer.classList.remove('text-danger');
+    messageContainer.classList.add('text-success');
+  }
+
+  if (state.form.processState === formProcessStates.failed) {
+    messageContainer.classList.remove('text-success');
+    messageContainer.classList.add('text-danger');
+  }
+
+  messageContainer.textContent = state.form.processMessage;
+};
 
 export default () => {
   const state = {
-    feedURLs: new Set(),
+    feeds: [],
+    posts: [],
     form: {
-      state: 'filling', // filling, sending, finished, failed
-      messages: {
-        success: [],
-        errors: [],
-      },
       valid: true,
+      processState: 'filling', // filling, sending, finished, failed
+      processMessage: '',
     },
   };
 
-  const watchedState = onChange(state, function (path, value) {
-    const errorContainer = document.querySelector('.feedback');
-    const input = document.querySelector('[name="add-rss"]');
-    const submitButton = document.querySelector('button[type="submit"]');
+  const formElements = {
+    form: document.querySelector('.feed-form'),
+    input: document.querySelector('[name="add-rss"]'),
+    submitButton: document.querySelector('button[type="submit"]'),
+    messageContainer: document.querySelector('.message-container'),
+  };
 
-    switch (path) {
-      case 'form.state': {
-        if (value === 'sending') {
-          submitButton.disabled = true;
-        }
-        if (value === 'finished') {
-          submitButton.disabled = false;
-
-          const successMessage = this.form.messages.success.pop();
-          errorContainer.textContent = successMessage;
-          errorContainer.classList.remove('text-danger');
-          errorContainer.classList.add('text-success');
-        }
-        if (value === 'failed') {
-          submitButton.disabled = false;
-
-          const errorMessage = this.form.messages.errors.pop();
-          errorContainer.textContent = errorMessage;
-          errorContainer.classList.remove('text-success');
-          errorContainer.classList.add('text-danger');
-        }
-        if (value === 'filling') {
-          errorContainer.innerHTML = '';
-          submitButton.disabled = false;
-        }
-        break;
-      }
-      case 'form.valid': {
-        if (value) {
-          input.classList.remove('is-invalid');
-        } else {
-          input.classList.add('is-invalid');
-        }
-        break;
-      }
-      default:
-        break;
-    }
+  const watchedState = onChange(state, () => {
+    updateForm(state, formElements);
   });
 
   const addFeedForm = document.querySelector('.feed-form');
@@ -68,62 +161,76 @@ export default () => {
   addFeedForm.addEventListener('submit', (event) => {
     event.preventDefault();
 
-    watchedState.form.state = 'sending';
+    watchedState.form = Object.assign(watchedState.form, {
+      processState: formProcessStates.sending,
+    });
 
     const formData = new FormData(event.target);
     const inputValue = formData.get('add-rss');
 
-    if (watchedState.feedURLs.has(inputValue)) {
-      console.log('RSS уже существует');
-      watchedState.form.messages.errors.push('RSS уже существует');
-      watchedState.form.valid = false;
-      watchedState.form.state = 'failed';
+    if (isDuplicateRSS(watchedState, inputValue)) {
+      watchedState.form = Object.assign(watchedState.form, {
+        valid: false,
+        processState: 'failed',
+        processMessage: errorMessages.duplicateRSS,
+      });
       return;
     }
 
-    const isValidURL = scheme.isValidSync(inputValue);
-    console.log('isValidURL', isValidURL);
-
-    if (!isValidURL) {
-      console.log('invalid url', isValidURL);
-      watchedState.form.messages.errors.push('Ссылка должна быть валидным URL');
-      watchedState.form.valid = false;
-      watchedState.form.state = 'failed';
+    if (!isValidURL(inputValue)) {
+      watchedState.form = Object.assign(watchedState.form, {
+        valid: false,
+        processState: 'failed',
+        processMessage: errorMessages.invalidURL,
+      });
       return;
     }
 
-    watchedState.form.valid = true;
+    watchedState.form = Object.assign(watchedState.form, {
+      valid: true,
+    });
 
-    fetch(`https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(inputValue)}`)
-      .then((responce) => {
-        console.log(responce);
-        return responce.json();
-      })
+    fetch(getRSS(inputValue))
+      .then((responce) => responce.json())
       .then((data) => {
-        const parser = new DOMParser();
-        const dom = parser.parseFromString(data.contents, 'application/xml');
+        const xmlDOM = parseXML(data.contents);
+        const feed = createFeed(xmlDOM, inputValue);
+        watchedState.feeds.push(feed);
 
-        if (!isValidFeed(dom)) {
-          console.log('не валидный RSS');
-          watchedState.form.messages.errors.push('Ресурс не содержит валидный RSS');
-          watchedState.form.state = 'failed';
-          return;
-        }
-        watchedState.feedURLs.add(inputValue);
-        watchedState.form.messages.success.push('RSS успешно добавлен');
-        watchedState.form.state = 'finished';
+        watchedState.form = Object.assign(watchedState.form, {
+          processState: 'finished',
+          processMessage: successMessages.addRSS,
+        });
+
+        render(watchedState);
 
         setTimeout(() => {
-          watchedState.form.state = 'filling';
+          watchedState.form = Object.assign(watchedState.form, {
+            processState: 'filling',
+            processMessage: '',
+          });
         }, 2000);
-
-        console.log(dom);
-        console.log(state);
       })
       .catch((error) => {
-        console.log('ошибка сети', error);
-        watchedState.form.messages.errors.push('Ошибка сети');
-        watchedState.form.state = 'failed';
+        const errorMessage = error.message;
+
+        if (errorMessage === errorMessages.invalidRSS) {
+          watchedState.form = Object.assign(watchedState.form, {
+            processMessage: errorMessages.invalidRSS,
+          });
+        }
+
+        if (errorMessage === errorMessages.network) {
+          watchedState.form = Object.assign(watchedState.form, {
+            processMessage: errorMessages.network,
+          });
+        }
+
+        watchedState.form = Object.assign(watchedState.form, {
+          processState: 'failed',
+        });
+
+        throw error;
       });
   });
 };
