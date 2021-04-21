@@ -1,17 +1,7 @@
 import * as yup from 'yup';
 import onChange from 'on-change';
 import { uniqueId } from 'lodash';
-
-const successMessages = {
-  addRSS: 'RSS успешно добавлен',
-};
-
-const errorMessages = {
-  network: 'Ошибка сети',
-  duplicateRSS: 'RSS уже существует',
-  invalidRSS: 'Ресурс не содержит валидный RSS',
-  invalidURL: 'Ссылка должна быть валидным URL',
-};
+import i18n from './libs/i18n.js';
 
 const formProcessStates = {
   filling: 'filling',
@@ -32,7 +22,7 @@ const parseRSS = (string, url) => {
   const xmlDOM = parser.parseFromString(string, 'application/xml');
 
   if (!isValidFeed(xmlDOM)) {
-    throw new Error(errorMessages.invalidRSS);
+    throw new Error(i18n.t('errorMessages.invalidRSS'));
   }
 
   const feedId = uniqueId();
@@ -146,7 +136,7 @@ export default () => {
     posts: [],
     form: {
       valid: true,
-      processState: 'filling', // filling, sending, finished, failed
+      processState: formProcessStates.filling,
       processMessage: '',
     },
   };
@@ -162,9 +152,7 @@ export default () => {
     updateForm(state, formElements);
   });
 
-  const addFeedForm = document.querySelector('.feed-form');
-
-  addFeedForm.addEventListener('submit', (event) => {
+  formElements.form.addEventListener('submit', (event) => {
     event.preventDefault();
 
     watchedState.form = Object.assign(watchedState.form, {
@@ -177,8 +165,8 @@ export default () => {
     if (isDuplicateRSS(watchedState, inputValue)) {
       watchedState.form = Object.assign(watchedState.form, {
         valid: false,
-        processState: 'failed',
-        processMessage: errorMessages.duplicateRSS,
+        processState: formProcessStates.failed,
+        processMessage: i18n.t('errorMessages.duplicateRSS'),
       });
       return;
     }
@@ -186,8 +174,8 @@ export default () => {
     if (!isValidURL(inputValue)) {
       watchedState.form = Object.assign(watchedState.form, {
         valid: false,
-        processState: 'failed',
-        processMessage: errorMessages.invalidURL,
+        processState: formProcessStates.failed,
+        processMessage: i18n.t('errorMessages.invalidURL'),
       });
       return;
     }
@@ -204,15 +192,15 @@ export default () => {
         watchedState.posts = [...posts, ...watchedState.posts];
 
         watchedState.form = Object.assign(watchedState.form, {
-          processState: 'finished',
-          processMessage: successMessages.addRSS,
+          processState: formProcessStates.finished,
+          processMessage: i18n.t('successMessages.addRSS'),
         });
 
         render(watchedState);
 
         setTimeout(() => {
           watchedState.form = Object.assign(watchedState.form, {
-            processState: 'filling',
+            processState: formProcessStates.filling,
             processMessage: '',
           });
         }, 2000);
@@ -220,20 +208,20 @@ export default () => {
       .catch((error) => {
         const errorMessage = error.message;
 
-        if (errorMessage === errorMessages.invalidRSS) {
+        if (errorMessage === i18n.t('errorMessages.invalidRSS')) {
           watchedState.form = Object.assign(watchedState.form, {
-            processMessage: errorMessages.invalidRSS,
+            processMessage: i18n.t('errorMessages.invalidRSS'),
           });
         }
 
-        if (errorMessage === errorMessages.network) {
+        if (errorMessage === i18n.t('errorMessages.network')) {
           watchedState.form = Object.assign(watchedState.form, {
-            processMessage: errorMessages.network,
+            processMessage: i18n.t('errorMessages.network'),
           });
         }
 
         watchedState.form = Object.assign(watchedState.form, {
-          processState: 'failed',
+          processState: formProcessStates.failed,
         });
 
         throw error;
