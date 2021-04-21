@@ -1,5 +1,6 @@
 import * as yup from 'yup';
 import onChange from 'on-change';
+import { uniqueId } from 'lodash';
 
 const successMessages = {
   addRSS: 'RSS успешно добавлен',
@@ -21,41 +22,45 @@ const formProcessStates = {
 
 const scheme = yup.string().url().required();
 
-const getRSS = (url) => `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}`;
+const getRSSUrl = (url) => `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}`;
 const isValidURL = (url) => scheme.isValidSync(url);
 const isValidFeed = (xmlDOM) => xmlDOM.querySelector('parsererror') === null;
 const isDuplicateRSS = (state, url) => state.feeds.find((feed) => feed.url === url) !== undefined;
-const parseXML = (string) => {
+
+const parseRSS = (string, url) => {
   const parser = new DOMParser();
   const xmlDOM = parser.parseFromString(string, 'application/xml');
+
   if (!isValidFeed(xmlDOM)) {
     throw new Error(errorMessages.invalidRSS);
   }
 
-  return xmlDOM;
-};
+  const feedId = uniqueId();
+  const feedTitle = xmlDOM.querySelector('title');
+  const feedDescription = xmlDOM.querySelector('description');
 
-const createPost = (data) => {
-  const titleElement = data.querySelector('title');
-  const linkElement = data.querySelector('link');
-
-  return {
-    title: titleElement.textContent,
-    link: linkElement.textContent,
-  };
-};
-
-const createFeed = (data, url) => {
-  const titleElement = data.querySelector('title');
-  const descriptionElement = data.querySelector('description');
-  const postElements = data.querySelectorAll('item');
-
-  return {
-    title: titleElement.textContent,
-    description: descriptionElement.textContent,
+  const feed = {
+    feedId,
     url,
-    posts: [...postElements].map(createPost),
+    feedTitle: feedTitle.textContent,
+    feedDescription: feedDescription.textContent,
   };
+
+  const feedPosts = xmlDOM.querySelectorAll('item');
+
+  const posts = [...feedPosts].map((feedPost) => {
+    const feedPostTitle = feedPost.querySelector('title');
+    const feedPostLink = feedPost.querySelector('link');
+
+    return {
+      id: uniqueId(),
+      feedId,
+      postTitle: feedPostTitle.textContent,
+      postLink: feedPostLink.textContent,
+    };
+  });
+
+  return [feed, posts];
 };
 
 const render = (state) => {
@@ -67,37 +72,38 @@ const render = (state) => {
   const feedsList = document.createElement('ul');
   feedsList.classList.add('list-group');
   state.feeds.forEach((feed) => {
+    const { feedTitle, feedDescription } = feed;
+
     const listItem = document.createElement('li');
     listItem.classList.add('list-group-item');
 
-    const feedTitle = document.createElement('h3');
-    feedTitle.textContent = feed.title;
-    feedTitle.classList.add('h3');
+    const feedTitleElement = document.createElement('h3');
+    feedTitleElement.textContent = feedTitle;
+    feedTitleElement.classList.add('h3');
 
-    const feedDescription = document.createElement('p');
-    feedDescription.classList.add('mb-0');
-    feedDescription.textContent = feed.description;
+    const feedDescriptionElement = document.createElement('p');
+    feedDescriptionElement.classList.add('mb-0');
+    feedDescriptionElement.textContent = feedDescription;
 
-    listItem.append(feedTitle, feedDescription);
-    feedsList.prepend(listItem);
+    listItem.append(feedTitleElement, feedDescriptionElement);
+    feedsList.append(listItem);
   });
 
   const postsList = document.createElement('ul');
   postsList.classList.add('list-group');
-  state.feeds.forEach((feed) => {
-    const postListFragment = document.createDocumentFragment();
-    feed.posts.forEach((post) => {
-      const listItem = document.createElement('li');
-      listItem.classList.add('list-group-item');
 
-      const postLink = document.createElement('a');
-      postLink.textContent = post.title;
-      postLink.href = post.link;
+  state.posts.forEach((post) => {
+    const { postTitle, postLink } = post;
 
-      listItem.append(postLink);
-      postListFragment.append(listItem);
-    });
-    postsList.prepend(postListFragment);
+    const listItem = document.createElement('li');
+    listItem.classList.add('list-group-item');
+
+    const postLinkElement = document.createElement('a');
+    postLinkElement.textContent = postTitle;
+    postLinkElement.href = postLink;
+
+    listItem.append(postLinkElement);
+    postsList.append(listItem);
   });
 
   feedsContainer.append(feedsList);
@@ -190,12 +196,12 @@ export default () => {
       valid: true,
     });
 
-    fetch(getRSS(inputValue))
+    fetch(getRSSUrl(inputValue))
       .then((responce) => responce.json())
       .then((data) => {
-        const xmlDOM = parseXML(data.contents);
-        const feed = createFeed(xmlDOM, inputValue);
-        watchedState.feeds.push(feed);
+        const [feed, posts] = parseRSS(data.contents, inputValue);
+        watchedState.feeds = [feed, ...watchedState.feeds];
+        watchedState.posts = [...posts, ...watchedState.posts];
 
         watchedState.form = Object.assign(watchedState.form, {
           processState: 'finished',
