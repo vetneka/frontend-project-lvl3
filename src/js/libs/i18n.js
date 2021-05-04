@@ -1,5 +1,5 @@
 import i18n from 'i18next';
-import ru from '../locales/ru/translation.js';
+import ru from '../../locales/ru/translation.js';
 
 i18n.init({
   lng: 'ru',
