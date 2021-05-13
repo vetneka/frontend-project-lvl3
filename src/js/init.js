@@ -2,7 +2,7 @@
 
 import * as yup from 'yup';
 import onChange from 'on-change';
-import { uniqueId } from 'lodash';
+import { uniqueId, differenceBy } from 'lodash';
 import i18n from './libs/i18n.js';
 import formProcessStates from './constants.js';
 import parseRSS from './rssParser.js';
@@ -14,110 +14,66 @@ import {
 
 const scheme = yup.string().url().required();
 
-const getRSSUrl = (url) => `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}`;
+const getProxyFor = (url) => `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}`;
 const isValidURL = (url) => scheme.isValidSync(url);
 const isDuplicateRSS = (state, url) => state.channels
   .find((channel) => channel.url === url) !== undefined;
 
-const checkUpdate = (state) => {
-  const requests = state.channels.map((channel) => fetch(getRSSUrl(channel.url)));
+const updateState = (previousState, currentState) => Object.assign(previousState, currentState);
+
+const loadRssFeed = (url) => fetch(getProxyFor(url))
+  .then((response) => response.json())
+  .then((data) => data.contents);
+
+const loadNewPosts = (feeds) => {
+  const requests = feeds.map(({ url }) => loadRssFeed(url));
   return Promise.all(requests)
-    .then((responses) => Promise.all(responses.map((response) => response.json())))
-    .then((channelsContent) => {
-      const parsedChannels = channelsContent.map((channel) => parseRSS(channel.contents));
+    .then((rssFeeds) => rssFeeds.flatMap((rssFeed, index) => {
+      const currentFeed = feeds[index];
+      const [, posts] = parseRSS(rssFeed);
+      return posts.map((post) => ({
+        ...post,
+        channelId: currentFeed.id,
+        id: uniqueId(),
+      }));
+    }));
+};
 
-      return parsedChannels.forEach(([, newPosts], index) => {
-        const oldPosts = state.posts.filter((post) => post.channelId === state.channels[index].id);
-        const [newestOldPost] = oldPosts;
-
-        const newestPosts = newPosts
-          .filter((newPost) => newPost.pubDate > newestOldPost.pubDate)
-          .map((newestPost) => ({
-            ...newestPost,
-            id: uniqueId(),
-            channelId: state.channels[index].id,
-          }));
-
-        state.posts = [...newestPosts, ...state.posts];
+const listenToNewPosts = (watchedState) => {
+  if (watchedState.channels.length === 0) {
+    setTimeout(listenToNewPosts, 5000, watchedState);
+    return;
+  }
+  loadNewPosts(watchedState.channels)
+    .then((newPosts) => {
+      const newUniquePosts = differenceBy(
+        newPosts,
+        watchedState.posts,
+        ({ pubDate }) => pubDate < watchedState.lastTimePostsUpdate,
+      );
+      updateState(watchedState, {
+        posts: [...newUniquePosts, ...watchedState.posts],
+        lastTimePostsUpdate: Date.now(),
       });
     })
     .catch((error) => {
-      console.log('checkUpdateError', error);
+      console.log('Интернет соединение недоступно.');
+      throw error;
     })
     .finally(() => {
-      setTimeout(checkUpdate, 5000, state);
+      setTimeout(listenToNewPosts, 5000, watchedState);
     });
 };
-
-// const feedWatcher = (state) => {
-//   state.feedWatcher.isEnabled = false;
-
-//   return Promise.all(state.feeds.map((feed) => fetch(getRSSUrl(feed.url))))
-//     .then((responses) => Promise.all(responses
-//       // .filter((response) => response.value)
-//       .map((response) => response.json())))
-//     .then((channels) => {
-//       const newPosts = channels
-//         .filter((channel) => channel.status.http_code === 200)
-//         .flatMap((channel) => {
-//           const currentFeed = state.feeds
-//             .find((feed) => feed.url === channel.status.url);
-
-//           const [, currentPosts] = parseRSS(channel.contents, currentFeed.url, currentFeed.id);
-//           const [lastNewFeedPost = []] = state.posts
-//             .filter((post) => post.feedId === currentFeed.id);
-
-//           return currentPosts
-//             .filter((currentPost) => currentPost.postPubDate > lastNewFeedPost.postPubDate);
-//         });
-
-//       state.posts = [...newPosts, ...state.posts];
-
-//       state.feedWatcher.isEnabled = true;
-
-//       state.onlineState = Object.assign(state.onlineState, {
-//         isOnline: true,
-//         message: 'Online',
-//       });
-//     })
-//     .catch((error) => {
-//       console.log('watcher error');
-
-//       state.feedWatcher.isEnabled = true;
-
-//       state.onlineState = Object.assign(state.onlineState, {
-//         isOnline: false,
-//         message: 'Offline',
-//       });
-
-//       // state.feedWatcher.isEnabled = true;
-
-//       console.log(state);
-//       const errorMessage = error.message;
-
-//       if (errorMessage === i18n.t('errorMessages.invalidRSS')) {
-//         console.log(i18n.t('errorMessages.invalidRSS'));
-//       }
-
-//       if (errorMessage === i18n.t('errorMessages.network')) {
-//         watchedState.network = false;
-//       }
-
-//       throw error;
-//     });
-// };
 
 export default () => {
   const state = {
     channels: [],
     posts: [],
+    lastTimePostsUpdate: 0,
     form: {
       valid: true,
       processState: formProcessStates.filling,
       processMessage: '',
-    },
-    feedWatcher: {
-      isEnabled: false,
     },
     onlineState: {
       message: '',
@@ -132,7 +88,8 @@ export default () => {
     messageContainer: document.querySelector('.message-container'),
   };
 
-  const watchedState = onChange(state, (path, value, prevValue) => {
+  const watchedState = onChange(state, (path) => {
+    console.log(path);
     if (path.startsWith('form')) {
       renderForm(state, formElements);
     }
@@ -142,9 +99,6 @@ export default () => {
     }
 
     if (path === 'channels') {
-      if (prevValue.length === 0) {
-        checkUpdate(watchedState);
-      }
       render(state);
     }
 
@@ -156,7 +110,7 @@ export default () => {
   formElements.form.addEventListener('submit', (event) => {
     event.preventDefault();
 
-    watchedState.form = Object.assign(watchedState.form, {
+    updateState(watchedState.form, {
       processState: formProcessStates.sending,
     });
 
@@ -164,7 +118,7 @@ export default () => {
     const rssUrl = formData.get('add-rss');
 
     if (isDuplicateRSS(watchedState, rssUrl)) {
-      watchedState.form = Object.assign(watchedState.form, {
+      updateState(watchedState.form, {
         valid: false,
         processState: formProcessStates.failed,
         processMessage: i18n.t('errorMessages.duplicateRSS'),
@@ -173,7 +127,7 @@ export default () => {
     }
 
     if (!isValidURL(rssUrl)) {
-      watchedState.form = Object.assign(watchedState.form, {
+      updateState(watchedState.form, {
         valid: false,
         processState: formProcessStates.failed,
         processMessage: i18n.t('errorMessages.invalidURL'),
@@ -181,14 +135,13 @@ export default () => {
       return;
     }
 
-    watchedState.form = Object.assign(watchedState.form, {
+    updateState(watchedState.form, {
       valid: true,
     });
 
-    fetch(getRSSUrl(rssUrl))
-      .then((responce) => responce.json())
+    loadRssFeed(rssUrl)
       .then((data) => {
-        const [channel, posts] = parseRSS(data.contents);
+        const [channel, posts] = parseRSS(data);
 
         const newChannel = {
           ...channel,
@@ -202,16 +155,19 @@ export default () => {
           channelId: newChannel.id,
         }));
 
-        watchedState.channels = [newChannel, ...watchedState.channels];
-        watchedState.posts = [...newPosts, ...watchedState.posts];
+        updateState(watchedState, {
+          channels: [newChannel, ...watchedState.channels],
+          posts: [...newPosts, ...watchedState.posts],
+          lastTimePostsUpdate: Date.now(),
+        });
 
-        watchedState.form = Object.assign(watchedState.form, {
+        updateState(watchedState.form, {
           processState: formProcessStates.finished,
           processMessage: i18n.t('successMessages.addRSS'),
         });
 
         setTimeout(() => {
-          watchedState.form = Object.assign(watchedState.form, {
+          updateState(watchedState.form, {
             processState: formProcessStates.filling,
             processMessage: '',
           });
@@ -221,22 +177,25 @@ export default () => {
         const errorMessage = error.message;
 
         if (errorMessage === i18n.t('errorMessages.invalidRSS')) {
-          watchedState.form = Object.assign(watchedState.form, {
+          updateState(watchedState.form, {
             processMessage: i18n.t('errorMessages.invalidRSS'),
           });
         }
 
         if (errorMessage === i18n.t('errorMessages.network')) {
-          watchedState.form = Object.assign(watchedState.form, {
+          updateState(watchedState.form, {
             processMessage: i18n.t('errorMessages.network'),
           });
         }
 
-        watchedState.form = Object.assign(watchedState.form, {
+        updateState(watchedState.form, {
           processState: formProcessStates.failed,
         });
 
         throw error;
       });
   });
+
+  render(watchedState);
+  listenToNewPosts(watchedState);
 };
