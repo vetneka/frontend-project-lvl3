@@ -178,8 +178,14 @@ export default () => {
     }
   });
 
+  console.log('formElements', formElements);
+  console.log('document', document);
+
   const postsContainer = document.querySelector('.posts');
   const postPreviewModal = document.querySelector('#postPreviewModal');
+
+  console.log('postsContainer', postsContainer);
+  console.log('postPreviewModal', postPreviewModal);
 
   postsContainer.addEventListener('click', (event) => {
     const button = event.target;
