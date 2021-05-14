@@ -19,7 +19,9 @@
                 <div class="form-row justify-content-center">
                   <div class="form-group col-12 col-sm mb-sm-0">
                     <label for="add-rss" class="sr-only">Добавить rss</label>
-                    <input value="http://lorem-rss.herokuapp.com/feed?unit=second&interval=5" type="text" class="form-control form-control-lg" name="add-rss" id="add-rss" placeholder="RSS ссылка" autofocus required>
+                    <!-- <input value="http://lorem-rss.herokuapp.com/feed?unit=second&interval=5" type="text" class="form-control form-control-lg" name="add-rss" id="add-rss" placeholder="RSS ссылка" autofocus required> -->
+                    <!-- <input value="https://dev.to/feed" type="text" class="form-control form-control-lg" name="add-rss" id="add-rss" placeholder="RSS ссылка" autofocus required> -->
+                    <input value="https://ru.hexlet.io/lessons.rss" type="text" class="form-control form-control-lg" name="add-rss" id="add-rss" placeholder="RSS ссылка" autofocus required>
                   </div>
                   <div class="form-group col-12 col-sm-auto mb-0">
                     <button class="btn btn-success btn-lg w-100" type="submit">Добавить</button>
@@ -75,6 +77,26 @@
           </div>
         </div>
       </footer>
+
+      <div class="modal fade" id="postPreviewModal" tabindex="-1" aria-labelledby="postPreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="postPreviewModalLabel">Заголовок модального окна</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              Тело модального окна
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+              <a href="#" class="btn btn-primary full-article" target="_blank">Читать полностью</a>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="error-messages text-light p-1 text-center bg-success fixed-top">Success</div>

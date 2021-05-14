@@ -36,16 +36,36 @@ export const render = (state) => {
     const {
       title: postTitle,
       link: postLink,
+      id: postId,
     } = post;
 
     const listItem = document.createElement('li');
-    listItem.classList.add('list-group-item');
+    listItem.classList.add(
+      'd-flex',
+      'list-group-item',
+      'justify-content-between',
+      'align-items-start',
+    );
 
     const postLinkElement = document.createElement('a');
     postLinkElement.textContent = postTitle;
     postLinkElement.href = postLink;
 
-    listItem.append(postLinkElement);
+    const linkFontWeight = (state.uiState.viewedPostsIds.has(postId))
+      ? 'font-weight-normal'
+      : 'font-weight-bold';
+
+    postLinkElement.classList.add(linkFontWeight);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.toggle = 'modal';
+    button.dataset.target = '#postPreviewModal';
+    button.dataset.postId = postId;
+    button.classList.add('btn', 'btn-primary', 'btn-sm', 'ml-2');
+    button.textContent = 'Просмотр';
+
+    listItem.append(postLinkElement, button);
     postsList.append(listItem);
   });
 

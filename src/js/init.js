@@ -79,6 +79,66 @@ export default () => {
       message: '',
       isOnline: true,
     },
+    activeModal: {
+      id: '',
+      overlayChecker: false,
+      isOpened: false,
+      content: {
+        title: '',
+        description: '',
+        link: '',
+      },
+    },
+    uiState: {
+      viewedPostsIds: new Set(),
+    },
+  };
+
+  const openModal = (modal) => {
+    const { id, content: { title, description, link } } = modal;
+    const modalElement = document.querySelector(id);
+    const modalTitleElement = modalElement.querySelector('.modal-title');
+    const modalDescriptionElement = modalElement.querySelector('.modal-body');
+    const modalReadMoreButton = modalElement.querySelector('.full-article');
+
+    modalElement.style.display = 'block';
+    modalElement.style.paddingRight = '15px';
+
+    modalTitleElement.textContent = title;
+    modalDescriptionElement.textContent = description;
+    modalReadMoreButton.href = link;
+
+    document.body.classList.add('modal-open');
+    document.body.style.paddingRight = '15px';
+
+    const modalBackdrop = document.createElement('div');
+    modalBackdrop.classList.add('modal-backdrop', 'fade');
+
+    document.body.append(modalBackdrop);
+
+    setTimeout(() => {
+      modalElement.classList.add('show');
+      modalBackdrop.classList.add('show');
+    }, 300);
+  };
+
+  const closeModal = (modal) => {
+    const { id } = modal;
+    const modalElement = document.querySelector(id);
+
+    modalElement.classList.remove('show');
+    modalElement.style.paddingRight = '';
+
+    document.body.classList.remove('modal-open');
+    document.body.style.paddingRight = '';
+
+    const modalBackdrop = document.querySelector('.modal-backdrop');
+    modalBackdrop.classList.remove('show');
+
+    setTimeout(() => {
+      modalElement.style.display = 'none';
+      modalBackdrop.remove();
+    }, 300);
   };
 
   const formElements = {
@@ -88,23 +148,104 @@ export default () => {
     messageContainer: document.querySelector('.message-container'),
   };
 
-  const watchedState = onChange(state, (path) => {
-    console.log(path);
+  const watchedState = onChange(state, (path, value) => {
     if (path.startsWith('form')) {
-      renderForm(state, formElements);
+      renderForm(watchedState, formElements);
     }
 
     if (path === 'posts') {
-      render(state);
+      render(watchedState);
     }
 
     if (path === 'channels') {
-      render(state);
+      render(watchedState);
     }
 
     if (path.startsWith('onlineState')) {
       renderError(watchedState);
     }
+
+    if (path === 'activeModal.isOpened') {
+      if (value) {
+        openModal(watchedState.activeModal);
+      } else {
+        closeModal(watchedState.activeModal);
+      }
+    }
+
+    if (path === 'uiState.viewedPostsIds') {
+      render(watchedState);
+    }
+  });
+
+  const postsContainer = document.querySelector('.posts');
+  const postPreviewModal = document.querySelector('#postPreviewModal');
+
+  postsContainer.addEventListener('click', (event) => {
+    const button = event.target;
+    if (button.dataset.toggle !== 'modal') {
+      return;
+    }
+    event.preventDefault();
+
+    const currentModalId = button.dataset.target;
+    const currentPostId = button.dataset.postId;
+    const {
+      id,
+      title,
+      description,
+      link,
+    } = watchedState.posts.find((post) => post.id === currentPostId);
+
+    updateState(watchedState.activeModal.content, {
+      title,
+      description,
+      link,
+    });
+
+    updateState(watchedState.uiState, {
+      viewedPostsIds: watchedState.uiState.viewedPostsIds.add(id),
+    });
+
+    updateState(watchedState.activeModal, {
+      id: currentModalId,
+      isOpened: true,
+    });
+  });
+
+  postPreviewModal.addEventListener('mousedown', (event) => {
+    if (event.target !== event.currentTarget) {
+      return;
+    }
+    watchedState.activeModal.overlayChecker = true;
+  });
+
+  postPreviewModal.addEventListener('mouseup', (event) => {
+    if (watchedState.activeModal.overlayChecker && event.target === event.currentTarget) {
+      updateState(watchedState.activeModal, {
+        isOpened: false,
+      });
+    }
+    watchedState.activeModal.overlayChecker = false;
+  });
+
+  postPreviewModal.addEventListener('click', (event) => {
+    if (!event.target.closest('[data-dismiss="modal"]')) {
+      return;
+    }
+    event.preventDefault();
+    updateState(watchedState.activeModal, {
+      isOpened: false,
+    });
+  });
+
+  document.addEventListener('keyup', (event) => {
+    if (event.code !== 'Escape') {
+      return;
+    }
+    updateState(watchedState.activeModal, {
+      isOpened: false,
+    });
   });
 
   formElements.form.addEventListener('submit', (event) => {

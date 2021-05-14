@@ -24,11 +24,13 @@ export default (string) => {
     const channelPostTitle = channelPost.querySelector('title');
     const channelPostLink = channelPost.querySelector('link');
     const channelPostPubDate = channelPost.querySelector('pubDate');
+    const channelPostDescription = channelPost.querySelector('description');
 
     return {
       title: channelPostTitle.textContent,
       link: channelPostLink.textContent,
       pubDate: new Date(channelPostPubDate.textContent),
+      description: channelPostDescription.textContent,
     };
   });
 
