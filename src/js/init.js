@@ -3,6 +3,7 @@
 import * as yup from 'yup';
 import onChange from 'on-change';
 import { uniqueId, differenceBy } from 'lodash';
+import axios from 'axios';
 import i18n from './libs/i18n.js';
 import formProcessStates from './constants.js';
 import parseRSS from './rssParser.js';
@@ -19,11 +20,20 @@ const isValidURL = (url) => scheme.isValidSync(url);
 const isDuplicateRSS = (state, url) => state.channels
   .find((channel) => channel.url === url) !== undefined;
 
+const isValidRSS = (contentType) => contentType === 'application/rss+xml; charset=utf-8';
+
 const updateState = (previousState, currentState) => Object.assign(previousState, currentState);
 
-const loadRssFeed = (url) => fetch(getProxyFor(url))
-  .then((response) => response.json())
-  .then((data) => data.contents);
+const loadRssFeed = (url) => axios(getProxyFor(url))
+  .then((response) => {
+    const { contents, status } = response.data;
+
+    if (!isValidRSS(status.content_type)) {
+      throw new Error(i18n.t('errorMessages.invalidRSS'));
+    }
+
+    return contents;
+  });
 
 const loadNewPosts = (feeds) => {
   const requests = feeds.map(({ url }) => loadRssFeed(url));
