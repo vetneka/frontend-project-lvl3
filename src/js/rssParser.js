@@ -1,6 +1,14 @@
+import { messagesTypes } from './constants.js';
+
+const isValidRSS = (rss) => rss.querySelector('parsererror') === null;
+
 export default (string) => {
   const parser = new DOMParser();
   const xmlDOM = parser.parseFromString(string, 'application/xml');
+  console.log(xmlDOM);
+  if (!isValidRSS(xmlDOM)) {
+    throw new Error(messagesTypes.invalidRSS);
+  }
 
   const channelTitle = xmlDOM.querySelector('title');
   const channelDescription = xmlDOM.querySelector('description');

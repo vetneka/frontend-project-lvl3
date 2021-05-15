@@ -4,8 +4,9 @@ import * as yup from 'yup';
 import onChange from 'on-change';
 import { uniqueId, differenceBy } from 'lodash';
 import axios from 'axios';
-import i18n from './libs/i18n.js';
-import formProcessStates from './constants.js';
+import i18next from 'i18next';
+import ru from '../locales/ru/translation.js';
+import { formProcessStates, messagesTypes } from './constants.js';
 import parseRSS from './rssParser.js';
 import {
   render,
@@ -15,24 +16,20 @@ import {
 
 const scheme = yup.string().url().required();
 
-const getProxyFor = (url) => `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}`;
+const getProxyFor = (url) => `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}&disableCache=true`;
 const isValidURL = (url) => scheme.isValidSync(url);
 const isDuplicateRSS = (state, url) => state.channels
   .find((channel) => channel.url === url) !== undefined;
-
-const isValidRSS = (contentType) => contentType === 'application/rss+xml; charset=utf-8';
 
 const updateState = (previousState, currentState) => Object.assign(previousState, currentState);
 
 const loadRssFeed = (url) => axios(getProxyFor(url))
   .then((response) => {
-    const { contents, status } = response.data;
-
-    if (!isValidRSS(status.content_type)) {
-      throw new Error(i18n.t('errorMessages.invalidRSS'));
-    }
-
+    const { contents } = response.data;
     return contents;
+  })
+  .catch(() => {
+    throw new Error(messagesTypes.network);
   });
 
 const loadNewPosts = (feeds) => {
@@ -67,7 +64,6 @@ const listenToNewPosts = (watchedState) => {
       });
     })
     .catch((error) => {
-      console.log('Интернет соединение недоступно.');
       throw error;
     })
     .finally(() => {
@@ -76,6 +72,14 @@ const listenToNewPosts = (watchedState) => {
 };
 
 export default () => {
+  const i18nextInstance = i18next.createInstance();
+  i18nextInstance.init({
+    lng: 'ru',
+    resources: {
+      ru,
+    },
+  });
+
   const state = {
     channels: [],
     posts: [],
@@ -83,7 +87,7 @@ export default () => {
     form: {
       valid: true,
       processState: formProcessStates.filling,
-      processMessage: '',
+      messageType: messagesTypes.empty,
     },
     onlineState: {
       message: '',
@@ -160,7 +164,7 @@ export default () => {
 
   const watchedState = onChange(state, (path, value) => {
     if (path.startsWith('form')) {
-      renderForm(watchedState, formElements);
+      renderForm(watchedState, formElements, i18nextInstance);
     }
 
     if (path === 'posts') {
@@ -188,14 +192,8 @@ export default () => {
     }
   });
 
-  console.log('formElements', formElements);
-  console.log('document', document);
-
   const postsContainer = document.querySelector('.posts');
   const postPreviewModal = document.querySelector('#postPreviewModal');
-
-  console.log('postsContainer', postsContainer);
-  console.log('postPreviewModal', postPreviewModal);
 
   postsContainer.addEventListener('click', (event) => {
     const button = event.target;
@@ -278,7 +276,7 @@ export default () => {
       updateState(watchedState.form, {
         valid: false,
         processState: formProcessStates.failed,
-        processMessage: i18n.t('errorMessages.duplicateRSS'),
+        messageType: messagesTypes.duplicateRSS,
       });
       return;
     }
@@ -287,7 +285,7 @@ export default () => {
       updateState(watchedState.form, {
         valid: false,
         processState: formProcessStates.failed,
-        processMessage: i18n.t('errorMessages.invalidURL'),
+        messageType: messagesTypes.invalidURL,
       });
       return;
     }
@@ -320,36 +318,32 @@ export default () => {
 
         updateState(watchedState.form, {
           processState: formProcessStates.finished,
-          processMessage: i18n.t('successMessages.addRSS'),
+          messageType: messagesTypes.addRSS,
         });
-
-        setTimeout(() => {
-          updateState(watchedState.form, {
-            processState: formProcessStates.filling,
-            processMessage: '',
-          });
-        }, 2000);
       })
       .catch((error) => {
-        const errorMessage = error.message;
+        const errorType = error.message;
 
-        if (errorMessage === i18n.t('errorMessages.invalidRSS')) {
-          updateState(watchedState.form, {
-            processMessage: i18n.t('errorMessages.invalidRSS'),
-          });
-        }
-
-        if (errorMessage === i18n.t('errorMessages.network')) {
-          updateState(watchedState.form, {
-            processMessage: i18n.t('errorMessages.network'),
-          });
+        switch (errorType) {
+          case messagesTypes.invalidRSS: {
+            updateState(watchedState.form, {
+              messageType: messagesTypes.invalidRSS,
+            });
+            break;
+          }
+          case messagesTypes.network: {
+            updateState(watchedState.form, {
+              messageType: messagesTypes.network,
+            });
+            break;
+          }
+          default:
+            break;
         }
 
         updateState(watchedState.form, {
           processState: formProcessStates.failed,
         });
-
-        throw error;
       });
   });
 

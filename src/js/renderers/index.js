@@ -1,4 +1,4 @@
-import formProcessStates from '../constants.js';
+import { formProcessStates } from '../constants.js';
 
 export const render = (state) => {
   const feedsContainer = document.querySelector('.feeds');
@@ -86,7 +86,7 @@ export const renderError = (state) => {
   errorMessageContainer.textContent = state.onlineState.message;
 };
 
-export const renderForm = (state, formElements) => {
+export const renderForm = (state, formElements, i18nextInstance) => {
   const { input, submitButton, messageContainer } = formElements;
 
   if (state.form.valid) {
@@ -106,6 +106,8 @@ export const renderForm = (state, formElements) => {
   if (state.form.processState === formProcessStates.finished) {
     messageContainer.classList.remove('text-danger');
     messageContainer.classList.add('text-success');
+    input.value = '';
+    input.focus();
   }
 
   if (state.form.processState === formProcessStates.failed) {
@@ -113,5 +115,5 @@ export const renderForm = (state, formElements) => {
     messageContainer.classList.add('text-danger');
   }
 
-  messageContainer.textContent = state.form.processMessage;
+  messageContainer.textContent = i18nextInstance.t(`messages.${state.form.messageType}`);
 };
