@@ -9,5 +9,8 @@ export default {
       requaredField: 'Поле не должно быть пустым',
       addRSS: 'RSS успешно загружен',
     },
+    buttons: {
+      postPreview: 'Просмотр',
+    },
   },
 };

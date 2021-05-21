@@ -1,20 +1,16 @@
-/* eslint no-param-reassign: ["error", { "props": false }] */
-
 import * as yup from 'yup';
-import onChange from 'on-change';
 import { uniqueId, differenceBy } from 'lodash';
 import axios from 'axios';
 import i18next from 'i18next';
+
 import ru from '../locales/ru/translation.js';
+
 import { formProcessStates, messagesTypes } from './constants.js';
 import parseRSS from './rssParser.js';
-import {
-  render,
-  renderError,
-  renderForm,
-} from './renderers/index.js';
+import initView from './initView.js';
+import initModal from './initModal.js';
 
-const scheme = yup.string().url().required();
+const scheme = yup.string().trim().required().url();
 
 const getProxyFor = (url) => `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}&disableCache=true`;
 const isValidURL = (url) => scheme.isValidSync(url);
@@ -72,14 +68,6 @@ const listenToNewPosts = (watchedState) => {
 };
 
 export default () => {
-  const i18nextInstance = i18next.createInstance();
-  i18nextInstance.init({
-    lng: 'ru',
-    resources: {
-      ru,
-    },
-  });
-
   const state = {
     channels: [],
     posts: [],
@@ -89,208 +77,95 @@ export default () => {
       processState: formProcessStates.filling,
       messageType: messagesTypes.empty,
     },
-    onlineState: {
-      message: '',
-      isOnline: true,
-    },
-    activeModal: {
-      id: '',
-      overlayChecker: false,
-      isOpened: false,
-      content: {
-        title: '',
-        description: '',
-        link: '',
-      },
-    },
     uiState: {
       viewedPostsIds: new Set(),
     },
   };
 
-  const openModal = (modal) => {
-    const { id, content: { title, description, link } } = modal;
-    const modalElement = document.querySelector(id);
-    const modalTitleElement = modalElement.querySelector('.modal-title');
-    const modalDescriptionElement = modalElement.querySelector('.modal-body');
-    const modalReadMoreButton = modalElement.querySelector('.full-article');
+  const elements = {
+    feedForm: {
+      form: document.querySelector('.feed-form'),
+      input: document.querySelector('[name="add-rss"]'),
+      submitButton: document.querySelector('button[type="submit"]'),
+      messageContainer: document.querySelector('.message-container'),
+    },
 
-    modalElement.style.display = 'block';
-    modalElement.style.paddingRight = '15px';
+    feeds: document.querySelector('.feeds'),
+    posts: document.querySelector('.posts'),
 
-    modalTitleElement.textContent = title;
-    modalDescriptionElement.textContent = description;
-    modalReadMoreButton.href = link;
-
-    document.body.classList.add('modal-open');
-    document.body.style.paddingRight = '15px';
-
-    const modalBackdrop = document.createElement('div');
-    modalBackdrop.classList.add('modal-backdrop', 'fade');
-
-    document.body.append(modalBackdrop);
-
-    setTimeout(() => {
-      modalElement.classList.add('show');
-      modalBackdrop.classList.add('show');
-    }, 300);
+    postPreviewModal: document.querySelector('#postPreviewModal'),
   };
 
-  const closeModal = (modal) => {
-    const { id } = modal;
-    const modalElement = document.querySelector(id);
+  const i18nextInstance = i18next.createInstance();
 
-    modalElement.classList.remove('show');
-    modalElement.style.paddingRight = '';
-
-    document.body.classList.remove('modal-open');
-    document.body.style.paddingRight = '';
-
-    const modalBackdrop = document.querySelector('.modal-backdrop');
-    modalBackdrop.classList.remove('show');
-
-    setTimeout(() => {
-      modalElement.style.display = 'none';
-      modalBackdrop.remove();
-    }, 300);
-  };
-
-  const formElements = {
-    form: document.querySelector('.feed-form'),
-    input: document.querySelector('[name="add-rss"]'),
-    submitButton: document.querySelector('button[type="submit"]'),
-    messageContainer: document.querySelector('.message-container'),
-  };
-
-  const watchedState = onChange(state, (path, value) => {
-    if (path.startsWith('form')) {
-      renderForm(watchedState, formElements, i18nextInstance);
-    }
-
-    if (path === 'posts') {
-      render(watchedState);
-    }
-
-    if (path === 'channels') {
-      render(watchedState);
-    }
-
-    if (path.startsWith('onlineState')) {
-      renderError(watchedState);
-    }
-
-    if (path === 'activeModal.isOpened') {
-      if (value) {
-        openModal(watchedState.activeModal);
-      } else {
-        closeModal(watchedState.activeModal);
-      }
-    }
-
-    if (path === 'uiState.viewedPostsIds') {
-      render(watchedState);
-    }
+  i18nextInstance.init({
+    lng: 'ru',
+    resources: {
+      ru,
+    },
   });
 
-  const postsContainer = document.querySelector('.posts');
-  const postPreviewModal = document.querySelector('#postPreviewModal');
+  const watched = initView(state, elements, i18nextInstance);
+  const postPreviewModal = initModal(elements.postPreviewModal);
 
-  postsContainer.addEventListener('click', (event) => {
+  elements.posts.addEventListener('click', (event) => {
     const button = event.target;
     if (button.dataset.toggle !== 'modal') {
       return;
     }
     event.preventDefault();
 
-    const currentModalId = button.dataset.target;
     const currentPostId = button.dataset.postId;
     const {
       id,
       title,
       description,
       link,
-    } = watchedState.posts.find((post) => post.id === currentPostId);
+    } = watched.posts.find((post) => post.id === currentPostId);
 
-    updateState(watchedState.activeModal.content, {
-      title,
-      description,
-      link,
+    updateState(watched.uiState, {
+      viewedPostsIds: watched.uiState.viewedPostsIds.add(id),
     });
 
-    updateState(watchedState.uiState, {
-      viewedPostsIds: watchedState.uiState.viewedPostsIds.add(id),
-    });
-
-    updateState(watchedState.activeModal, {
-      id: currentModalId,
+    updateState(postPreviewModal.state, {
+      content: {
+        title,
+        description,
+        link,
+      },
       isOpened: true,
     });
   });
 
-  postPreviewModal.addEventListener('mousedown', (event) => {
-    if (event.target !== event.currentTarget) {
-      return;
-    }
-    watchedState.activeModal.overlayChecker = true;
-  });
-
-  postPreviewModal.addEventListener('mouseup', (event) => {
-    if (watchedState.activeModal.overlayChecker && event.target === event.currentTarget) {
-      updateState(watchedState.activeModal, {
-        isOpened: false,
-      });
-    }
-    watchedState.activeModal.overlayChecker = false;
-  });
-
-  postPreviewModal.addEventListener('click', (event) => {
-    if (!event.target.closest('[data-dismiss="modal"]')) {
-      return;
-    }
+  elements.feedForm.form.addEventListener('submit', (event) => {
     event.preventDefault();
-    updateState(watchedState.activeModal, {
-      isOpened: false,
-    });
-  });
-
-  document.addEventListener('keyup', (event) => {
-    if (event.code !== 'Escape') {
-      return;
-    }
-    updateState(watchedState.activeModal, {
-      isOpened: false,
-    });
-  });
-
-  formElements.form.addEventListener('submit', (event) => {
-    event.preventDefault();
-
-    updateState(watchedState.form, {
-      processState: formProcessStates.sending,
-    });
 
     const formData = new FormData(event.target);
     const rssUrl = formData.get('add-rss');
 
-    if (isDuplicateRSS(watchedState, rssUrl)) {
-      updateState(watchedState.form, {
+    updateState(watched.form, {
+      processState: formProcessStates.sending,
+    });
+
+    if (isDuplicateRSS(watched, rssUrl)) {
+      updateState(watched.form, {
         valid: false,
-        processState: formProcessStates.failed,
         messageType: messagesTypes.duplicateRSS,
+        processState: formProcessStates.failed,
       });
       return;
     }
 
     if (!isValidURL(rssUrl)) {
-      updateState(watchedState.form, {
+      updateState(watched.form, {
         valid: false,
-        processState: formProcessStates.failed,
         messageType: messagesTypes.invalidURL,
+        processState: formProcessStates.failed,
       });
       return;
     }
 
-    updateState(watchedState.form, {
+    updateState(watched.form, {
       valid: true,
     });
 
@@ -310,13 +185,13 @@ export default () => {
           channelId: newChannel.id,
         }));
 
-        updateState(watchedState, {
-          channels: [newChannel, ...watchedState.channels],
-          posts: [...newPosts, ...watchedState.posts],
+        updateState(watched, {
+          channels: [newChannel, ...watched.channels],
+          posts: [...newPosts, ...watched.posts],
           lastTimePostsUpdate: Date.now(),
         });
 
-        updateState(watchedState.form, {
+        updateState(watched.form, {
           processState: formProcessStates.finished,
           messageType: messagesTypes.addRSS,
         });
@@ -326,13 +201,13 @@ export default () => {
 
         switch (errorType) {
           case messagesTypes.invalidRSS: {
-            updateState(watchedState.form, {
+            updateState(watched.form, {
               messageType: messagesTypes.invalidRSS,
             });
             break;
           }
           case messagesTypes.network: {
-            updateState(watchedState.form, {
+            updateState(watched.form, {
               messageType: messagesTypes.network,
             });
             break;
@@ -341,12 +216,11 @@ export default () => {
             break;
         }
 
-        updateState(watchedState.form, {
+        updateState(watched.form, {
           processState: formProcessStates.failed,
         });
       });
   });
 
-  render(watchedState);
-  listenToNewPosts(watchedState);
+  listenToNewPosts(watched);
 };
