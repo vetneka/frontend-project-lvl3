@@ -1,3 +1,8 @@
+export const appProcessStates = {
+  online: 'online',
+  offline: 'offline',
+};
+
 export const formProcessStates = {
   filling: 'filling',
   sending: 'sending',
@@ -6,11 +11,12 @@ export const formProcessStates = {
 };
 
 export const messagesTypes = {
-  empty: 'empty',
-  network: 'network',
-  duplicateRSS: 'duplicateRSS',
-  invalidRSS: 'invalidRSS',
-  invalidURL: 'invalidURL',
-  requaredField: 'requaredField',
-  addRSS: 'addRSS',
+  networkError: 'networkError',
+  form: {
+    duplicateRSS: 'duplicateRSS',
+    invalidRSS: 'invalidRSS',
+    invalidURL: 'invalidURL',
+    requiredField: 'requiredField',
+    addRSS: 'addRSS',
+  },
 };

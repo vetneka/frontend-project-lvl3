@@ -4,21 +4,21 @@ import render from './renderers/index.js';
 export default (state, elements, i18nextInstance) => {
   const { feedForm } = elements;
 
+  const renderMapping = {
+    processState: () => render.appError(
+      state.messageType,
+      feedForm,
+      i18nextInstance,
+    ),
+    channels: () => render.feeds(state),
+    posts: () => render.posts(state, i18nextInstance),
+    'form.processState': () => render.form(state, feedForm, i18nextInstance),
+    'uiState.viewedPostsIds': () => render.posts(state, i18nextInstance),
+  };
+
   const watchedState = onChange(state, (path) => {
-    if (path.startsWith('form')) {
-      render.form(watchedState, feedForm, i18nextInstance);
-    }
-
-    if (path === 'channels') {
-      render.feeds(watchedState);
-    }
-
-    if (path === 'posts') {
-      render.posts(watchedState, i18nextInstance);
-    }
-
-    if (path === 'uiState.viewedPostsIds') {
-      render.posts(watchedState, i18nextInstance);
+    if (renderMapping[path]) {
+      renderMapping[path]();
     }
   });
 

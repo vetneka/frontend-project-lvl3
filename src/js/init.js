@@ -1,23 +1,28 @@
 import * as yup from 'yup';
-import { uniqueId, differenceBy } from 'lodash';
+import { differenceBy } from 'lodash';
 import axios from 'axios';
-import i18next from 'i18next';
 
+import i18next from 'i18next';
 import ru from '../locales/ru/translation.js';
 
-import { formProcessStates, messagesTypes } from './constants.js';
-import parseRSS from './rssParser.js';
+import { appProcessStates, formProcessStates, messagesTypes } from './constants.js';
+import {
+  updateState,
+  getProxyFor,
+  isDuplicateFeed,
+  normalizeFeed,
+  normalizePosts,
+} from './utils.js';
+
 import initView from './initView.js';
 import initModal from './initModal.js';
 
-const scheme = yup.string().trim().required().url();
+import parseRSS from './rssParser.js';
 
-const getProxyFor = (url) => `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}&disableCache=true`;
-const isValidURL = (url) => scheme.isValidSync(url);
-const isDuplicateRSS = (state, url) => state.channels
-  .find((channel) => channel.url === url) !== undefined;
-
-const updateState = (previousState, currentState) => Object.assign(previousState, currentState);
+const validate = (value) => {
+  const scheme = yup.string().trim().required().url();
+  return scheme.validate(value);
+};
 
 const loadRssFeed = (url) => axios(getProxyFor(url))
   .then((response) => {
@@ -25,7 +30,7 @@ const loadRssFeed = (url) => axios(getProxyFor(url))
     return contents;
   })
   .catch(() => {
-    throw new Error(messagesTypes.network);
+    throw new Error(messagesTypes.networkError);
   });
 
 const loadNewPosts = (feeds) => {
@@ -34,19 +39,19 @@ const loadNewPosts = (feeds) => {
     .then((rssFeeds) => rssFeeds.flatMap((rssFeed, index) => {
       const currentFeed = feeds[index];
       const [, posts] = parseRSS(rssFeed);
-      return posts.map((post) => ({
-        ...post,
-        channelId: currentFeed.id,
-        id: uniqueId(),
-      }));
+
+      return normalizePosts(posts, currentFeed.id);
     }));
 };
 
 const listenToNewPosts = (watchedState) => {
+  const timeoutMs = 5000;
+
   if (watchedState.channels.length === 0) {
-    setTimeout(listenToNewPosts, 5000, watchedState);
+    setTimeout(listenToNewPosts, timeoutMs, watchedState);
     return;
   }
+
   loadNewPosts(watchedState.channels)
     .then((newPosts) => {
       const newUniquePosts = differenceBy(
@@ -63,7 +68,7 @@ const listenToNewPosts = (watchedState) => {
       throw error;
     })
     .finally(() => {
-      setTimeout(listenToNewPosts, 5000, watchedState);
+      setTimeout(listenToNewPosts, timeoutMs, watchedState);
     });
 };
 
@@ -72,10 +77,12 @@ export default () => {
     channels: [],
     posts: [],
     lastTimePostsUpdate: 0,
+    processState: appProcessStates.online,
+    messageType: null,
     form: {
       valid: true,
       processState: formProcessStates.filling,
-      messageType: messagesTypes.empty,
+      messageType: null,
     },
     uiState: {
       viewedPostsIds: new Set(),
@@ -108,11 +115,22 @@ export default () => {
   const watched = initView(state, elements, i18nextInstance);
   const postPreviewModal = initModal(elements.postPreviewModal);
 
+  yup.setLocale({
+    mixed: {
+      required: messagesTypes.form.requiredField,
+    },
+    string: {
+      url: messagesTypes.form.invalidURL,
+    },
+  });
+
   elements.posts.addEventListener('click', (event) => {
     const button = event.target;
+
     if (button.dataset.toggle !== 'modal') {
       return;
     }
+
     event.preventDefault();
 
     const currentPostId = button.dataset.postId;
@@ -143,82 +161,72 @@ export default () => {
     const formData = new FormData(event.target);
     const rssUrl = formData.get('add-rss');
 
-    updateState(watched.form, {
-      processState: formProcessStates.sending,
+    updateState(watched, {
+      processState: appProcessStates.online,
+      messageType: null,
     });
 
-    if (isDuplicateRSS(watched, rssUrl)) {
-      updateState(watched.form, {
-        valid: false,
-        messageType: messagesTypes.duplicateRSS,
-        processState: formProcessStates.failed,
-      });
-      return;
-    }
-
-    if (!isValidURL(rssUrl)) {
-      updateState(watched.form, {
-        valid: false,
-        messageType: messagesTypes.invalidURL,
-        processState: formProcessStates.failed,
-      });
-      return;
-    }
-
     updateState(watched.form, {
-      valid: true,
+      processState: formProcessStates.filling,
     });
 
-    loadRssFeed(rssUrl)
+    validate(rssUrl)
+      .then((url) => {
+        if (isDuplicateFeed(watched.channels, url)) {
+          throw new Error(messagesTypes.form.duplicateRSS);
+        }
+
+        updateState(watched.form, {
+          valid: true,
+          messageType: null,
+          processState: formProcessStates.sending,
+        });
+
+        return loadRssFeed(url);
+      })
       .then((data) => {
         const [channel, posts] = parseRSS(data);
 
-        const newChannel = {
-          ...channel,
-          id: uniqueId(),
-          url: rssUrl,
-        };
-
-        const newPosts = posts.map((post) => ({
-          ...post,
-          id: uniqueId(),
-          channelId: newChannel.id,
-        }));
+        const normalizedFeed = normalizeFeed(channel, { url: rssUrl });
+        const normalizedPosts = normalizePosts(posts, { channelId: normalizedFeed.id });
 
         updateState(watched, {
-          channels: [newChannel, ...watched.channels],
-          posts: [...newPosts, ...watched.posts],
+          channels: [normalizedFeed, ...watched.channels],
+          posts: [...normalizedPosts, ...watched.posts],
           lastTimePostsUpdate: Date.now(),
         });
 
         updateState(watched.form, {
+          messageType: messagesTypes.form.addRSS,
           processState: formProcessStates.finished,
-          messageType: messagesTypes.addRSS,
         });
       })
       .catch((error) => {
-        const errorType = error.message;
+        const { message } = error;
 
-        switch (errorType) {
-          case messagesTypes.invalidRSS: {
+        switch (message) {
+          case messagesTypes[message]:
             updateState(watched.form, {
-              messageType: messagesTypes.invalidRSS,
+              processState: formProcessStates.filling,
+            });
+
+            updateState(watched, {
+              messageType: messagesTypes[message],
+              processState: appProcessStates.offline,
             });
             break;
-          }
-          case messagesTypes.network: {
+
+          case messagesTypes.form[message]:
             updateState(watched.form, {
-              messageType: messagesTypes.network,
+              valid: false,
+              messageType: messagesTypes.form[message],
+              processState: formProcessStates.failed,
             });
             break;
-          }
+
           default:
-            break;
+            throw new Error(`Unexpected type error: ${message}`);
         }
-
-        updateState(watched.form, {
-          processState: formProcessStates.failed,
-        });
       });
   });
 

@@ -33,5 +33,7 @@ export default (state, formElements, i18nextInstance) => {
     messageContainer.classList.add('text-danger');
   }
 
-  messageContainer.textContent = i18nextInstance.t(`messages.${state.form.messageType}`);
+  messageContainer.textContent = (state.form.messageType)
+    ? i18nextInstance.t(`messages.form.${state.form.messageType}`)
+    : '';
 };

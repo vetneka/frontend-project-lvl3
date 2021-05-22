@@ -7,7 +7,7 @@ export default (string) => {
   const xmlDOM = parser.parseFromString(string, 'application/xml');
 
   if (!isValidRSS(xmlDOM)) {
-    throw new Error(messagesTypes.invalidRSS);
+    throw new Error(messagesTypes.form.invalidRSS);
   }
 
   const channelTitle = xmlDOM.querySelector('title');
