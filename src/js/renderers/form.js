@@ -7,6 +7,8 @@ export default (state, formElements, i18nextInstance) => {
     messageContainer,
   } = formElements;
 
+  submitButton.textContent = i18nextInstance.t('buttons.addFeed');
+
   if (state.form.valid) {
     input.classList.remove('is-invalid');
   } else {
@@ -14,10 +16,10 @@ export default (state, formElements, i18nextInstance) => {
   }
 
   if (state.form.processState === formProcessStates.sending) {
-    input.disabled = true;
+    input.readOnly = true;
     submitButton.disabled = true;
   } else {
-    input.disabled = false;
+    input.readOnly = false;
     submitButton.disabled = false;
   }
 

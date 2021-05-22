@@ -10,29 +10,29 @@ export default (string) => {
     throw new Error(messagesTypes.form.invalidRSS);
   }
 
-  const channelTitle = xmlDOM.querySelector('title');
-  const channelDescription = xmlDOM.querySelector('description');
+  const feedTitle = xmlDOM.querySelector('title');
+  const feedDescription = xmlDOM.querySelector('description');
 
-  const channel = {
-    title: channelTitle.textContent,
-    description: channelDescription.textContent,
+  const feed = {
+    title: feedTitle.textContent,
+    description: feedDescription.textContent,
   };
 
-  const channelPosts = xmlDOM.querySelectorAll('item');
+  const feedPosts = xmlDOM.querySelectorAll('item');
 
-  const posts = [...channelPosts].map((channelPost) => {
-    const channelPostTitle = channelPost.querySelector('title');
-    const channelPostLink = channelPost.querySelector('link');
-    const channelPostPubDate = channelPost.querySelector('pubDate');
-    const channelPostDescription = channelPost.querySelector('description');
+  const posts = [...feedPosts].map((feedPost) => {
+    const feedPostTitle = feedPost.querySelector('title');
+    const feedPostLink = feedPost.querySelector('link');
+    const feedPostPubDate = feedPost.querySelector('pubDate');
+    const feedPostDescription = feedPost.querySelector('description');
 
     return {
-      title: channelPostTitle.textContent,
-      link: channelPostLink.textContent,
-      pubDate: new Date(channelPostPubDate.textContent),
-      description: channelPostDescription.textContent,
+      title: feedPostTitle.textContent,
+      link: feedPostLink.textContent,
+      pubDate: new Date(feedPostPubDate.textContent),
+      description: feedPostDescription.textContent,
     };
   });
 
-  return [channel, posts];
+  return [feed, posts];
 };

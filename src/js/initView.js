@@ -10,7 +10,7 @@ export default (state, elements, i18nextInstance) => {
       feedForm,
       i18nextInstance,
     ),
-    channels: () => render.feeds(state),
+    feeds: () => render.feeds(state, i18nextInstance),
     posts: () => render.posts(state, i18nextInstance),
     'form.processState': () => render.form(state, feedForm, i18nextInstance),
     'uiState.viewedPostsIds': () => render.posts(state, i18nextInstance),
@@ -22,8 +22,8 @@ export default (state, elements, i18nextInstance) => {
     }
   });
 
-  render.feeds(watchedState);
-  render.posts(watchedState, i18nextInstance);
+  render.feeds(state, i18nextInstance);
+  render.posts(state, i18nextInstance);
 
   return watchedState;
 };

@@ -10,8 +10,18 @@ export default {
         addRSS: 'RSS успешно загружен',
       },
     },
+    headlines: {
+      feeds: 'Фиды',
+      posts: 'Посты',
+    },
+    noFeeds: 'Пока здесь нет ни одного фида :(',
     buttons: {
+      addFeed: 'Добавить',
       postPreview: 'Просмотр',
+      modal: {
+        readMore: 'Читать полностью',
+        close: 'Закрыть',
+      },
     },
   },
 };

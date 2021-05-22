@@ -47,12 +47,12 @@ const loadNewPosts = (feeds) => {
 const listenToNewPosts = (watchedState) => {
   const timeoutMs = 5000;
 
-  if (watchedState.channels.length === 0) {
+  if (watchedState.feeds.length === 0) {
     setTimeout(listenToNewPosts, timeoutMs, watchedState);
     return;
   }
 
-  loadNewPosts(watchedState.channels)
+  loadNewPosts(watchedState.feeds)
     .then((newPosts) => {
       const newUniquePosts = differenceBy(
         newPosts,
@@ -74,7 +74,7 @@ const listenToNewPosts = (watchedState) => {
 
 export default () => {
   const state = {
-    channels: [],
+    feeds: [],
     posts: [],
     lastTimePostsUpdate: 0,
     processState: appProcessStates.online,
@@ -113,7 +113,7 @@ export default () => {
   });
 
   const watched = initView(state, elements, i18nextInstance);
-  const postPreviewModal = initModal(elements.postPreviewModal);
+  const postPreviewModal = initModal(elements.postPreviewModal, i18nextInstance);
 
   yup.setLocale({
     mixed: {
@@ -167,31 +167,30 @@ export default () => {
     });
 
     updateState(watched.form, {
-      processState: formProcessStates.filling,
+      processState: formProcessStates.sending,
     });
 
     validate(rssUrl)
       .then((url) => {
-        if (isDuplicateFeed(watched.channels, url)) {
+        if (isDuplicateFeed(watched.feeds, url)) {
           throw new Error(messagesTypes.form.duplicateRSS);
         }
 
         updateState(watched.form, {
           valid: true,
           messageType: null,
-          processState: formProcessStates.sending,
         });
 
         return loadRssFeed(url);
       })
       .then((data) => {
-        const [channel, posts] = parseRSS(data);
+        const [feed, posts] = parseRSS(data);
 
-        const normalizedFeed = normalizeFeed(channel, { url: rssUrl });
-        const normalizedPosts = normalizePosts(posts, { channelId: normalizedFeed.id });
+        const normalizedFeed = normalizeFeed(feed, { url: rssUrl });
+        const normalizedPosts = normalizePosts(posts, { feedId: normalizedFeed.id });
 
         updateState(watched, {
-          channels: [normalizedFeed, ...watched.channels],
+          feeds: [normalizedFeed, ...watched.feeds],
           posts: [...normalizedPosts, ...watched.posts],
           lastTimePostsUpdate: Date.now(),
         });

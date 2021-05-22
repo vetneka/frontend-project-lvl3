@@ -1,8 +1,7 @@
 /* eslint no-param-reassign: ["error", { "props": false }] */
 
 import onChange from 'on-change';
-
-const updateState = (previousState, currentState) => Object.assign(previousState, currentState);
+import { updateState } from './utils.js';
 
 const openModal = (modal, data) => {
   const { title, description, link } = data;
@@ -47,12 +46,15 @@ const closeModal = (modal) => {
   }, 300);
 };
 
-export default (modal) => {
+export default (modal, i18nextInstance) => {
   const state = {
     content: {},
     isOpened: false,
     overlayChecker: false,
   };
+
+  const buttonClose = modal.querySelector('.btn[data-dismiss="modal"]');
+  const buttonReadMore = modal.querySelector('.full-article');
 
   const watchedState = onChange(state, (path, value) => {
     if (path === 'isOpened') {
@@ -63,6 +65,9 @@ export default (modal) => {
       }
     }
   });
+
+  buttonClose.textContent = i18nextInstance.t('buttons.modal.close');
+  buttonReadMore.textContent = i18nextInstance.t('buttons.modal.readMore');
 
   modal.addEventListener('mousedown', (event) => {
     if (event.target !== event.currentTarget) {

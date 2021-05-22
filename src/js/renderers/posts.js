@@ -2,6 +2,13 @@ export default (state, i18nextInstance) => {
   const postsContainer = document.querySelector('.posts');
   postsContainer.innerHTML = '';
 
+  if (state.posts.length === 0) {
+    return;
+  }
+
+  const header = document.createElement('h2');
+  header.textContent = i18nextInstance.t('headlines.posts');
+
   const postsList = document.createElement('ul');
   postsList.classList.add('list-group');
 
@@ -42,5 +49,5 @@ export default (state, i18nextInstance) => {
     postsList.append(listItem);
   });
 
-  postsContainer.append(postsList);
+  postsContainer.append(header, postsList);
 };
