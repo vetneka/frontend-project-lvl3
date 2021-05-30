@@ -28,7 +28,7 @@
               </form>
 
               <p class="text-secondary my-1">Пример: https://ru.hexlet.io/lessons.rss, https://dev.to/feed</p>
-              <p class="message-container my-1"></p>
+              <p class="message-container my-1" data-testid="message-container"></p>
             </div>
           </div>
         </div>
@@ -39,11 +39,11 @@
           <div class="row">
             <div class="col-md-10 col-lg-8 mx-auto">
               <div class="row mb-4">
-                <div class="col feeds">
+                <div class="col feeds" data-testid="feeds">
                 </div>
               </div>
               <div class="row">
-                <div class="col posts">
+                <div class="col posts" data-testid="posts">
                 </div>
               </div>
             </div>
@@ -73,7 +73,7 @@
         </div>
       </footer>
 
-      <div class="modal fade" id="postPreviewModal" tabindex="-1" aria-labelledby="postPreviewModalLabel" aria-hidden="true">
+      <div class="modal fade" id="postPreviewModal" data-testid="postPreviewModal" tabindex="-1" aria-labelledby="postPreviewModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-scrollable">
           <div class="modal-content">
             <div class="modal-header">

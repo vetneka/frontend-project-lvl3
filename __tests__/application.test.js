@@ -83,12 +83,12 @@ beforeEach(() => {
 
   run(() => {});
 
-  elements.input = screen.getByRole('textbox');
-  elements.submit = screen.getByRole('button');
-  elements.messageContainer = document.querySelector('.message-container');
-  elements.feedsContainer = document.querySelector('.feeds');
-  elements.postsContainer = document.querySelector('.posts');
-  elements.postPreviewModal = document.querySelector('#postPreviewModal');
+  elements.input = screen.getByRole('textbox', { name: 'url' });
+  elements.submit = screen.getByRole('button', { name: 'add' });
+  elements.messageContainer = screen.getByTestId('message-container');
+  elements.feedsContainer = screen.getByTestId('feeds');
+  elements.postsContainer = screen.getByTestId('posts');
+  elements.postPreviewModal = screen.getByTestId('postPreviewModal');
 });
 
 describe('check interface texts', () => {
@@ -192,7 +192,7 @@ describe('check base UI logic', () => {
       .reply(200, '', { 'Access-Control-Allow-Origin': '*' });
 
     expect(elements.input).not.toHaveAttribute('readonly');
-    expect(elements.submit).not.toBeDisabled();
+    expect(elements.submit).toBeEnabled();
 
     userEvent.type(elements.input, urls.hexlet);
     userEvent.click(elements.submit);
@@ -202,7 +202,7 @@ describe('check base UI logic', () => {
 
     return waitFor(() => {
       expect(elements.input).not.toHaveAttribute('readonly');
-      expect(elements.submit).not.toBeDisabled();
+      expect(elements.submit).toBeEnabled();
     })
       .then(() => {
         scope.done();
@@ -236,8 +236,8 @@ describe('check base UI logic', () => {
         const feedListItems = within(elements.feedsContainer).getAllByRole('listitem');
         const postsListItems = within(elements.postsContainer).getAllByRole('listitem');
 
-        expect(feedListItems).toHaveLength(1);
-        expect(postsListItems).toHaveLength(2);
+        expect(feedListItems.length).toBe(1);
+        expect(postsListItems.length).toBe(2);
 
         checkFeedsStructure(feedListItems, state.addedFeeds);
         checkPostsStructure(postsListItems, state.addedPosts);
@@ -257,8 +257,8 @@ describe('check base UI logic', () => {
         const feedListItems = within(elements.feedsContainer).getAllByRole('listitem');
         const postsListItems = within(elements.postsContainer).getAllByRole('listitem');
 
-        expect(feedListItems).toHaveLength(2);
-        expect(postsListItems).toHaveLength(4);
+        expect(feedListItems.length).toBe(2);
+        expect(postsListItems.length).toBe(4);
 
         checkFeedsStructure(feedListItems, state.addedFeeds);
         checkPostsStructure(postsListItems, state.addedPosts);
@@ -322,8 +322,10 @@ describe('check base UI logic', () => {
         return waitFor(() => {
           expect(elements.postPreviewModal).toHaveClass('show');
 
-          expect(within(elements.postPreviewModal).getByText(firstPost.title)).toBeTruthy();
-          expect(within(elements.postPreviewModal).getByText(firstPost.description)).toBeTruthy();
+          expect(within(elements.postPreviewModal).getByText(firstPost.title)).toBeInTheDocument();
+          expect(
+            within(elements.postPreviewModal).getByText(firstPost.description),
+          ).toBeInTheDocument();
         });
       })
       .then(() => {
