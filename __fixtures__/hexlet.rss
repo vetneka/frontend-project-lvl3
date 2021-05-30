@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Новые уроки на Хекслете</title>
+    <description>Практические уроки по программированию</description>
+    <link>https://ru.hexlet.io/</link>
+    <webMaster>info@hexlet.io</webMaster>
+    <item>
+      <title>Заключение / Python: Декларативное программирование</title>
+      <guid isPermaLink="false">1975</guid>
+      <link>https://ru.hexlet.io/courses/python-declarative-programming/lessons/outro/theory_unit</link>
+      <description>Цель: Узнать, что осталось за рамками данного курса, но о чём неплохо бы иметь представление</description>
+      <pubDate>Fri, 21 May 2021 16:21:30 +0400</pubDate>
+    </item>
+    <item>
+      <title>Функции-генераторы / Python: Декларативное программирование</title>
+      <guid isPermaLink="false">1974</guid>
+      <link>https://ru.hexlet.io/courses/python-declarative-programming/lessons/generator-functions/theory_unit</link>
+      <description>Цель: Узнать о том, как программируются генераторы на низком уровне, в дополнение к высокоуровневым декларативным средствам.</description>
+      <pubDate>Fri, 21 May 2021 16:21:18 +0400</pubDate>
+    </item>
+  </channel>
+</rss>
