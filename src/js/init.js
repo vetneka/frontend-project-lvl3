@@ -72,7 +72,7 @@ const listenToNewPosts = (watchedState) => {
     });
 };
 
-export default () => {
+export default (innerListenToNewPosts = listenToNewPosts) => {
   const state = {
     feeds: [],
     posts: [],
@@ -162,11 +162,12 @@ export default () => {
     const rssUrl = formData.get('add-rss');
 
     updateState(watched, {
-      processState: appProcessStates.online,
       messageType: null,
+      processState: appProcessStates.online,
     });
 
     updateState(watched.form, {
+      messageType: null,
       processState: formProcessStates.sending,
     });
 
@@ -178,7 +179,6 @@ export default () => {
 
         updateState(watched.form, {
           valid: true,
-          messageType: null,
         });
 
         return loadRssFeed(url);
@@ -229,5 +229,5 @@ export default () => {
       });
   });
 
-  listenToNewPosts(watched);
+  innerListenToNewPosts(watched);
 };
