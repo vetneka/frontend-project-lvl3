@@ -1,6 +1,7 @@
 import * as yup from 'yup';
 import { differenceBy } from 'lodash';
 import axios from 'axios';
+import 'bootstrap/js/dist/modal';
 
 import i18next from 'i18next';
 import ru from '../locales/ru/translation.js';
@@ -15,7 +16,6 @@ import {
 } from './utils.js';
 
 import initView from './initView.js';
-import initModal from './initModal.js';
 
 import parseRSS from './rssParser.js';
 
@@ -76,6 +76,7 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
   const state = {
     feeds: [],
     posts: [],
+    currentPreviewPostId: null,
     lastTimePostsUpdate: 0,
     processState: appProcessStates.online,
     messageType: null,
@@ -113,7 +114,6 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
   });
 
   const watched = initView(state, elements, i18nextInstance);
-  const postPreviewModal = initModal(elements.postPreviewModal, i18nextInstance);
 
   yup.setLocale({
     mixed: {
@@ -127,31 +127,20 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
   elements.posts.addEventListener('click', (event) => {
     const button = event.target;
 
-    if (button.dataset.toggle !== 'modal') {
+    if (button.dataset.bsToggle !== 'modal') {
       return;
     }
 
     event.preventDefault();
 
     const currentPostId = button.dataset.postId;
-    const {
-      id,
-      title,
-      description,
-      link,
-    } = watched.posts.find((post) => post.id === currentPostId);
 
-    updateState(watched.uiState, {
-      viewedPostsIds: watched.uiState.viewedPostsIds.add(id),
+    updateState(watched, {
+      currentPreviewPostId: currentPostId,
     });
 
-    updateState(postPreviewModal.state, {
-      content: {
-        title,
-        description,
-        link,
-      },
-      isOpened: true,
+    updateState(watched.uiState, {
+      viewedPostsIds: watched.uiState.viewedPostsIds.add(currentPostId),
     });
   });
 
@@ -168,6 +157,7 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
 
     updateState(watched.form, {
       messageType: null,
+      valid: true,
       processState: formProcessStates.sending,
     });
 
@@ -176,10 +166,6 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
         if (isDuplicateFeed(watched.feeds, url)) {
           throw new Error(messagesTypes.form.duplicateRSS);
         }
-
-        updateState(watched.form, {
-          valid: true,
-        });
 
         return loadRssFeed(url);
       })
@@ -221,6 +207,7 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
               messageType: messagesTypes.form[message],
               processState: formProcessStates.failed,
             });
+
             break;
 
           default:

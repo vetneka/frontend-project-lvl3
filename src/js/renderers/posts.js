@@ -31,18 +31,18 @@ export default (state, i18nextInstance) => {
     postLinkElement.textContent = postTitle;
     postLinkElement.href = postLink;
 
-    const linkFontWeight = (state.uiState.viewedPostsIds.has(postId))
-      ? 'font-weight-normal'
-      : 'font-weight-bold';
+    const linkFontWeights = (state.uiState.viewedPostsIds.has(postId))
+      ? ['fw-normal', 'font-weight-normal']
+      : ['fw-bold', 'font-weight-bold'];
 
-    postLinkElement.classList.add(linkFontWeight);
+    postLinkElement.classList.add(...linkFontWeights);
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.dataset.toggle = 'modal';
-    button.dataset.target = '#postPreviewModal';
+    button.dataset.bsToggle = 'modal';
+    button.dataset.bsTarget = '#postPreviewModal';
     button.dataset.postId = postId;
-    button.classList.add('btn', 'btn-primary', 'btn-sm', 'ml-2');
+    button.classList.add('btn', 'btn-primary', 'btn-sm', 'ms-2');
     button.textContent = i18nextInstance.t('buttons.postPreview');
 
     listItem.append(postLinkElement, button);

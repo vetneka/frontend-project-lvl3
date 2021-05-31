@@ -79,6 +79,8 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  jest.useFakeTimers();
+
   document.body.innerHTML = initialHtml;
 
   run(() => {});
@@ -89,6 +91,11 @@ beforeEach(() => {
   elements.feedsContainer = screen.getByTestId('feeds');
   elements.postsContainer = screen.getByTestId('posts');
   elements.postPreviewModal = screen.getByTestId('postPreviewModal');
+});
+
+afterEach(() => {
+  jest.runOnlyPendingTimers();
+  jest.useRealTimers();
 });
 
 describe('check interface texts', () => {
@@ -250,9 +257,12 @@ describe('check base UI logic', () => {
         userEvent.click(elements.submit);
 
         return waitFor(() => {
-          expect(screen.getByText(`${i18nextInstance.t('messages.form.addRSS')}`)).toBeInTheDocument();
+          expect(elements.messageContainer).toBeEmptyDOMElement();
         });
       })
+      .then(() => waitFor(() => {
+        expect(screen.getByText(`${i18nextInstance.t('messages.form.addRSS')}`)).toBeInTheDocument();
+      }))
       .then(() => {
         const feedListItems = within(elements.feedsContainer).getAllByRole('listitem');
         const postsListItems = within(elements.postsContainer).getAllByRole('listitem');
@@ -284,12 +294,12 @@ describe('check base UI logic', () => {
         const firstPostButton = previewButtons[0];
         const firstPost = hexletPosts[0];
 
-        expect(within(elements.postsContainer).getByText(firstPost.title)).not.toHaveClass('font-weight-normal');
+        expect(within(elements.postsContainer).getByText(firstPost.title)).not.toHaveClass('fw-normal');
 
         userEvent.click(firstPostButton);
 
         return waitFor(() => {
-          expect(within(elements.postsContainer).getByText(firstPost.title)).toHaveClass('font-weight-normal');
+          expect(within(elements.postsContainer).getByText(firstPost.title)).toHaveClass('fw-normal');
         });
       })
       .then(() => {
@@ -301,8 +311,6 @@ describe('check base UI logic', () => {
     const scope = nock(getProxyHost())
       .get(getProxyPath(urls.hexlet))
       .reply(200, rss.hexlet, { 'Access-Control-Allow-Origin': '*' });
-
-    const modalCloseButton = within(elements.postPreviewModal).getByText(`${i18nextInstance.t('buttons.modal.close')}`);
 
     userEvent.type(elements.input, urls.hexlet);
     userEvent.click(elements.submit);
@@ -329,6 +337,7 @@ describe('check base UI logic', () => {
         });
       })
       .then(() => {
+        const modalCloseButton = within(elements.postPreviewModal).getByText(`${i18nextInstance.t('buttons.modal.close')}`);
         userEvent.click(modalCloseButton);
 
         return waitFor(() => {

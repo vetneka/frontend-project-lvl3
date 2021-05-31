@@ -7,8 +7,6 @@ export default (state, formElements, i18nextInstance) => {
     messageContainer,
   } = formElements;
 
-  submitButton.textContent = i18nextInstance.t('buttons.addFeed');
-
   if (state.form.valid) {
     input.classList.remove('is-invalid');
   } else {
@@ -23,19 +21,27 @@ export default (state, formElements, i18nextInstance) => {
     submitButton.disabled = false;
   }
 
-  if (state.form.processState === formProcessStates.finished) {
-    messageContainer.classList.remove('text-danger');
-    messageContainer.classList.add('text-success');
-    input.value = '';
-    input.focus();
-  }
+  submitButton.textContent = i18nextInstance.t('buttons.addFeed');
 
-  if (state.form.processState === formProcessStates.failed) {
-    messageContainer.classList.remove('text-success');
-    messageContainer.classList.add('text-danger');
-  }
+  messageContainer.classList.remove('show');
 
-  messageContainer.textContent = (state.form.messageType)
-    ? i18nextInstance.t(`messages.form.${state.form.messageType}`)
-    : '';
+  setTimeout(() => {
+    if (state.form.processState === formProcessStates.finished) {
+      messageContainer.classList.remove('text-danger');
+      messageContainer.classList.add('text-success');
+      input.value = '';
+      input.focus();
+    }
+
+    if (state.form.processState === formProcessStates.failed) {
+      messageContainer.classList.remove('text-success');
+      messageContainer.classList.add('text-danger');
+    }
+
+    messageContainer.textContent = (state.form.messageType)
+      ? i18nextInstance.t(`messages.form.${state.form.messageType}`)
+      : '';
+
+    messageContainer.classList.add('show');
+  }, 100);
 };

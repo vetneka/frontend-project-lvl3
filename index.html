@@ -8,27 +8,27 @@
   </head>
   <body>
     <div class="page d-flex flex-column min-vh-100">
-      <header class="py-5 bg-dark text-light">
+      <header class=" pt-5 pb-4 bg-dark text-light">
         <div class="container">
           <div class="row">
             <div class="col-md-10 col-lg-8 mx-auto">
-              <h1 class="display-4">RSS Agregator</h1>
+              <h1 class="display-3">RSS Agregator</h1>
               <p class="lead">Начните читать RSS сегодня! Это легко, это красиво.</p>
 
               <form class="feed-form" action="#" method="GET" autocomplete="off">
-                <div class="form-row justify-content-center">
-                  <div class="form-group col-12 col-sm mb-sm-0">
-                    <label for="add-rss" class="sr-only">Добавить rss</label>
+                <div class="row g-2">
+                  <div class="col-sm col-12">
+                    <label for="add-rss" class="visually-hidden">Добавить rss</label>
                     <input type="text" class="form-control form-control-lg" name="add-rss" id="add-rss" placeholder="RSS ссылка" aria-label="url" autofocus>
                   </div>
-                  <div class="form-group col-12 col-sm-auto mb-0">
+                  <div class="col-sm-auto col-12">
                     <button class="btn btn-success btn-lg w-100" type="submit" aria-label="add">Добавить</button>
                   </div>
                 </div>
               </form>
 
-              <p class="text-secondary my-1">Пример: https://ru.hexlet.io/lessons.rss, https://dev.to/feed</p>
-              <p class="message-container my-1"></p>
+              <p class="text-secondary my-2">Пример: https://ru.hexlet.io/lessons.rss, https://dev.to/feed</p>
+              <p class="message-container fade my-1"></p>
             </div>
           </div>
         </div>
@@ -76,18 +76,16 @@
       <div class="modal fade" id="postPreviewModal" tabindex="-1" aria-labelledby="postPreviewModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-scrollable">
           <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="postPreviewModalLabel">Заголовок модального окна</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
+            <div class="modal-header align-items-start">
+              <h5 class="modal-title" id="postPreviewModalLabel">Заголовок</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              Тело модального окна
+              Контент
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
-              <a href="#" class="btn btn-primary full-article" target="_blank">Читать полностью</a>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+              <a href="" class="btn btn-success" data-readmore target="_blank">Читать полностью</a>
             </div>
           </div>
         </div>

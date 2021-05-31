@@ -1,1 +1,7 @@
+$component-active-bg: #198754;
+
 @import "~bootstrap/scss/bootstrap";
+
+.message-container {
+  min-height: 24px;
+}
