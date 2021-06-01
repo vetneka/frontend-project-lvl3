@@ -1,12 +1,12 @@
 import { messagesTypes } from './constants.js';
 
-const isValidRSS = (rss) => rss.querySelector('parsererror') === null;
-
 export default (string) => {
   const parser = new DOMParser();
   const xmlDOM = parser.parseFromString(string, 'application/xml');
 
-  if (!isValidRSS(xmlDOM)) {
+  const error = xmlDOM.querySelector('parsererror');
+
+  if (error) {
     throw new Error(messagesTypes.form.invalidRSS);
   }
 
