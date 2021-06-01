@@ -9,10 +9,10 @@ import userEvent from '@testing-library/user-event';
 import nock from 'nock';
 
 import i18next from 'i18next';
-import ru from '../src/locales/ru/translation.js';
+import resources from '../src/locales/index.js';
 
-import rssParser from '../src/js/rssParser.js';
-import run from '../src/js/init.js';
+import rssParser from '../src/rssParser.js';
+import run from '../src/init.js';
 
 const getFixturesPath = (fileName) => path.join('__fixtures__', fileName);
 const readFile = (fileName) => fs.readFileSync(getFixturesPath(fileName), 'utf-8');
@@ -73,7 +73,7 @@ beforeAll(() => {
   return i18nextInstance.init({
     lng: 'ru',
     resources: {
-      ru,
+      ru: resources.ru,
     },
   });
 });

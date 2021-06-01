@@ -1,4 +1,4 @@
-import { formProcessStates } from '../constants.js';
+import { formProcessStates } from '../../constants.js';
 
 export default (state, formElements, i18nextInstance) => {
   const {

@@ -4,7 +4,7 @@ import axios from 'axios';
 import 'bootstrap/js/dist/modal';
 
 import i18next from 'i18next';
-import ru from '../locales/ru/translation.js';
+import resources from './locales/index.js';
 
 import { appProcessStates, formProcessStates, messagesTypes } from './constants.js';
 import {
@@ -15,7 +15,7 @@ import {
   normalizePosts,
 } from './utils.js';
 
-import initView from './initView.js';
+import initView from './view/initView.js';
 
 import parseRSS from './rssParser.js';
 
@@ -109,7 +109,7 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
   i18nextInstance.init({
     lng: 'ru',
     resources: {
-      ru,
+      ru: resources.ru,
     },
   });
 
