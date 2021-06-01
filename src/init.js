@@ -98,8 +98,8 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
       messageContainer: document.querySelector('.message-container'),
     },
 
-    feeds: document.querySelector('.feeds'),
-    posts: document.querySelector('.posts'),
+    feedsContainer: document.querySelector('.feeds'),
+    postsContainer: document.querySelector('.posts'),
 
     postPreviewModal: document.querySelector('#postPreviewModal'),
   };
@@ -124,7 +124,7 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
     },
   });
 
-  elements.posts.addEventListener('click', (event) => {
+  elements.postsContainer.addEventListener('click', (event) => {
     const button = event.target;
 
     if (button.dataset.bsToggle !== 'modal') {

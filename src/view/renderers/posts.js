@@ -1,6 +1,7 @@
-export default (state, i18nextInstance) => {
-  const postsContainer = document.querySelector('.posts');
-  postsContainer.innerHTML = '';
+/* eslint no-param-reassign: ["error", { "props": false }] */
+
+export default (state, container, i18nextInstance) => {
+  container.innerHTML = '';
 
   if (state.posts.length === 0) {
     return;
@@ -12,42 +13,37 @@ export default (state, i18nextInstance) => {
   const postsList = document.createElement('ul');
   postsList.classList.add('list-group');
 
-  state.posts.forEach((post) => {
-    const {
-      title: postTitle,
-      link: postLink,
-      id: postId,
-    } = post;
-
-    const listItem = document.createElement('li');
-    listItem.classList.add(
+  const postsListItems = state.posts.map((post) => {
+    const item = document.createElement('li');
+    item.classList.add(
       'd-flex',
       'list-group-item',
       'justify-content-between',
       'align-items-start',
     );
 
-    const postLinkElement = document.createElement('a');
-    postLinkElement.textContent = postTitle;
-    postLinkElement.href = postLink;
-
-    const linkFontWeights = (state.uiState.viewedPostsIds.has(postId))
+    const link = document.createElement('a');
+    const linkFontWeights = (state.uiState.viewedPostsIds.has(post.id))
       ? ['fw-normal', 'font-weight-normal']
       : ['fw-bold', 'font-weight-bold'];
 
-    postLinkElement.classList.add(...linkFontWeights);
+    link.classList.add(...linkFontWeights);
+    link.href = post.link;
+    link.textContent = post.title;
 
     const button = document.createElement('button');
+    button.classList.add('btn', 'btn-primary', 'btn-sm', 'ms-2');
     button.type = 'button';
     button.dataset.bsToggle = 'modal';
     button.dataset.bsTarget = '#postPreviewModal';
-    button.dataset.postId = postId;
-    button.classList.add('btn', 'btn-primary', 'btn-sm', 'ms-2');
+    button.dataset.postId = post.id;
     button.textContent = i18nextInstance.t('buttons.postPreview');
 
-    listItem.append(postLinkElement, button);
-    postsList.append(listItem);
+    item.append(link, button);
+
+    return item;
   });
 
-  postsContainer.append(header, postsList);
+  postsList.append(...postsListItems);
+  container.append(header, postsList);
 };
