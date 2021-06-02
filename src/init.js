@@ -1,5 +1,5 @@
 import * as yup from 'yup';
-import { differenceBy } from 'lodash';
+import { differenceWith } from 'lodash';
 import axios from 'axios';
 import 'bootstrap/js/dist/modal';
 
@@ -54,18 +54,15 @@ const listenToNewPosts = (watchedState) => {
 
   loadNewPosts(watchedState.feeds)
     .then((newPosts) => {
-      const newUniquePosts = differenceBy(
+      const newUniquePosts = differenceWith(
         newPosts,
         watchedState.posts,
-        ({ pubDate }) => pubDate < watchedState.lastTimePostsUpdate,
+        (newPost, oldPost) => newPost.pubDate <= oldPost.pubDate,
       );
+
       updateState(watchedState, {
         posts: [...newUniquePosts, ...watchedState.posts],
-        lastTimePostsUpdate: Date.now(),
       });
-    })
-    .catch((error) => {
-      throw error;
     })
     .finally(() => {
       setTimeout(listenToNewPosts, timeoutMs, watchedState);
@@ -77,7 +74,6 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
     feeds: [],
     posts: [],
     currentPreviewPostId: null,
-    lastTimePostsUpdate: 0,
     processState: appProcessStates.online,
     messageType: null,
     form: {
