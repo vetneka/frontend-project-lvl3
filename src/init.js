@@ -122,15 +122,13 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
   });
 
   elements.postsContainer.addEventListener('click', (event) => {
-    const button = event.target;
+    const currentPostId = event.target.dataset.postId;
 
-    if (button.dataset.bsToggle !== 'modal') {
+    if (!currentPostId) {
       return;
     }
 
     event.preventDefault();
-
-    const currentPostId = button.dataset.postId;
 
     updateState({
       currentPreviewPostId: currentPostId,
