@@ -60,7 +60,7 @@ const listenToNewPosts = (watchedState) => {
         (newPost, oldPost) => newPost.pubDate <= oldPost.pubDate,
       );
 
-      updateState(watchedState, {
+      updateState({
         posts: [...newUniquePosts, ...watchedState.posts],
       });
     })
@@ -110,6 +110,7 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
   });
 
   const watched = initView(state, elements, i18nextInstance);
+  updateState.state = watched;
 
   yup.setLocale({
     mixed: {
@@ -131,12 +132,11 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
 
     const currentPostId = button.dataset.postId;
 
-    updateState(watched, {
+    updateState({
       currentPreviewPostId: currentPostId,
-    });
-
-    updateState(watched.uiState, {
-      viewedPostsIds: watched.uiState.viewedPostsIds.add(currentPostId),
+      uiState: {
+        viewedPostsIds: watched.uiState.viewedPostsIds.add(currentPostId),
+      },
     });
   });
 
@@ -146,15 +146,14 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
     const formData = new FormData(event.target);
     const rssUrl = formData.get('add-rss');
 
-    updateState(watched, {
+    updateState({
       messageType: null,
       processState: appProcessStates.online,
-    });
-
-    updateState(watched.form, {
-      messageType: null,
-      valid: true,
-      processState: formProcessStates.sending,
+      form: {
+        messageType: null,
+        valid: true,
+        processState: formProcessStates.sending,
+      },
     });
 
     validate(rssUrl)
@@ -171,15 +170,13 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
         const normalizedFeed = normalizeFeed(feed, { url: rssUrl });
         const normalizedPosts = normalizePosts(posts, { feedId: normalizedFeed.id });
 
-        updateState(watched, {
+        updateState({
           feeds: [normalizedFeed, ...watched.feeds],
           posts: [...normalizedPosts, ...watched.posts],
-          lastTimePostsUpdate: Date.now(),
-        });
-
-        updateState(watched.form, {
-          messageType: messagesTypes.form.addRSS,
-          processState: formProcessStates.finished,
+          form: {
+            messageType: messagesTypes.form.addRSS,
+            processState: formProcessStates.finished,
+          },
         });
       })
       .catch((error) => {
@@ -187,23 +184,23 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
 
         switch (message) {
           case messagesTypes[message]:
-            updateState(watched.form, {
-              processState: formProcessStates.filling,
-            });
-
-            updateState(watched, {
+            updateState({
+              form: {
+                processState: formProcessStates.filling,
+              },
               messageType: messagesTypes[message],
               processState: appProcessStates.offline,
             });
             break;
 
           case messagesTypes.form[message]:
-            updateState(watched.form, {
-              valid: false,
-              messageType: messagesTypes.form[message],
-              processState: formProcessStates.failed,
+            updateState({
+              form: {
+                valid: false,
+                messageType: messagesTypes.form[message],
+                processState: formProcessStates.failed,
+              },
             });
-
             break;
 
           default:
