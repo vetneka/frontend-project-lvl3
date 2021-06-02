@@ -107,16 +107,6 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
 
   const i18nextInstance = i18next.createInstance();
 
-  i18nextInstance.init({
-    lng: 'ru',
-    resources: {
-      ru: resources.ru,
-    },
-  });
-
-  const watched = initView(state, elements, i18nextInstance);
-  updateState.state = watched;
-
   yup.setLocale({
     mixed: {
       required: messagesTypes.form.requiredField,
@@ -126,91 +116,101 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
     },
   });
 
-  elements.postsContainer.addEventListener('click', (event) => {
-    const currentPostId = event.target.dataset.postId;
+  i18nextInstance.init({
+    lng: 'ru',
+    resources: {
+      ru: resources.ru,
+    },
+  }).then(() => {
+    const watched = initView(state, elements, i18nextInstance);
+    updateState.state = watched;
 
-    if (!currentPostId) {
-      return;
-    }
+    elements.postsContainer.addEventListener('click', (event) => {
+      const currentPostId = event.target.dataset.postId;
 
-    event.preventDefault();
+      if (!currentPostId) {
+        return;
+      }
 
-    updateState({
-      currentPreviewPostId: currentPostId,
-      uiState: {
-        viewedPostsIds: watched.uiState.viewedPostsIds.add(currentPostId),
-      },
-    });
-  });
+      event.preventDefault();
 
-  elements.feedForm.form.addEventListener('submit', (event) => {
-    event.preventDefault();
-
-    const formData = new FormData(event.target);
-    const rssUrl = formData.get('add-rss');
-
-    updateState({
-      messageType: null,
-      processState: appProcessStates.online,
-      form: {
-        messageType: null,
-        valid: true,
-        processState: formProcessStates.sending,
-      },
-    });
-
-    validate(rssUrl)
-      .then((url) => {
-        if (isDuplicateFeed(watched.feeds, url)) {
-          throw new Error(messagesTypes.form.duplicateRSS);
-        }
-
-        return loadRssFeed(url);
-      })
-      .then((data) => {
-        const [feed, posts] = parseRSS(data);
-
-        const normalizedFeed = normalizeFeed(feed, { url: rssUrl });
-        const normalizedPosts = normalizePosts(posts, { feedId: normalizedFeed.id });
-
-        updateState({
-          feeds: [normalizedFeed, ...watched.feeds],
-          posts: [...normalizedPosts, ...watched.posts],
-          form: {
-            messageType: messagesTypes.form.addRSS,
-            processState: formProcessStates.finished,
-          },
-        });
-      })
-      .catch((error) => {
-        const { message } = error;
-
-        switch (message) {
-          case messagesTypes[message]:
-            updateState({
-              form: {
-                processState: formProcessStates.filling,
-              },
-              messageType: messagesTypes[message],
-              processState: appProcessStates.offline,
-            });
-            break;
-
-          case messagesTypes.form[message]:
-            updateState({
-              form: {
-                valid: false,
-                messageType: messagesTypes.form[message],
-                processState: formProcessStates.failed,
-              },
-            });
-            break;
-
-          default:
-            throw new Error(`Unexpected type error: ${message}`);
-        }
+      updateState({
+        currentPreviewPostId: currentPostId,
+        uiState: {
+          viewedPostsIds: watched.uiState.viewedPostsIds.add(currentPostId),
+        },
       });
-  });
+    });
 
-  innerListenToNewPosts(watched);
+    elements.feedForm.form.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      const formData = new FormData(event.target);
+      const rssUrl = formData.get('add-rss');
+
+      updateState({
+        messageType: null,
+        processState: appProcessStates.online,
+        form: {
+          messageType: null,
+          valid: true,
+          processState: formProcessStates.sending,
+        },
+      });
+
+      validate(rssUrl)
+        .then((url) => {
+          if (isDuplicateFeed(watched.feeds, url)) {
+            throw new Error(messagesTypes.form.duplicateRSS);
+          }
+
+          return loadRssFeed(url);
+        })
+        .then((data) => {
+          const [feed, posts] = parseRSS(data);
+
+          const normalizedFeed = normalizeFeed(feed, { url: rssUrl });
+          const normalizedPosts = normalizePosts(posts, { feedId: normalizedFeed.id });
+
+          updateState({
+            feeds: [normalizedFeed, ...watched.feeds],
+            posts: [...normalizedPosts, ...watched.posts],
+            form: {
+              messageType: messagesTypes.form.addRSS,
+              processState: formProcessStates.finished,
+            },
+          });
+        })
+        .catch((error) => {
+          const { message } = error;
+
+          switch (message) {
+            case messagesTypes[message]:
+              updateState({
+                form: {
+                  processState: formProcessStates.filling,
+                },
+                messageType: messagesTypes[message],
+                processState: appProcessStates.offline,
+              });
+              break;
+
+            case messagesTypes.form[message]:
+              updateState({
+                form: {
+                  valid: false,
+                  messageType: messagesTypes.form[message],
+                  processState: formProcessStates.failed,
+                },
+              });
+              break;
+
+            default:
+              throw new Error(`Unexpected type error: ${message}`);
+          }
+        });
+    });
+
+    innerListenToNewPosts(watched);
+  });
 };
