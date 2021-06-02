@@ -22,8 +22,5 @@ export default (state, elements, i18nextInstance) => {
     }
   });
 
-  render.feeds(state, elements, i18nextInstance);
-  render.posts(state, elements, i18nextInstance);
-
   return watchedState;
 };
