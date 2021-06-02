@@ -1,7 +1,7 @@
-/* eslint no-param-reassign: ["error", { "props": false }] */
+export default (state, elements, i18nextInstance) => {
+  const { postsContainer } = elements;
 
-export default (state, container, i18nextInstance) => {
-  container.innerHTML = '';
+  postsContainer.innerHTML = '';
 
   if (state.posts.length === 0) {
     return;
@@ -45,5 +45,5 @@ export default (state, container, i18nextInstance) => {
   });
 
   postsList.append(...postsListItems);
-  container.append(header, postsList);
+  postsContainer.append(header, postsList);
 };

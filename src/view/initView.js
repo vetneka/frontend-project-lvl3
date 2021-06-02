@@ -5,17 +5,15 @@ export default (state, elements, i18nextInstance) => {
   const {
     feedForm,
     postPreviewModal,
-    feedsContainer,
-    postsContainer,
   } = elements;
 
   const renderMapping = {
     processState: () => render.appError(state.messageType, feedForm, i18nextInstance),
-    feeds: () => render.feeds(state, feedsContainer, i18nextInstance),
-    posts: () => render.posts(state, postsContainer, i18nextInstance),
+    feeds: () => render.feeds(state, elements, i18nextInstance),
+    posts: () => render.posts(state, elements, i18nextInstance),
     currentPreviewPostId: () => render.modal(state, postPreviewModal, i18nextInstance),
     'form.processState': () => render.form(state, feedForm, i18nextInstance),
-    'uiState.viewedPostsIds': () => render.posts(state, postsContainer, i18nextInstance),
+    'uiState.viewedPostsIds': () => render.posts(state, elements, i18nextInstance),
   };
 
   const watchedState = onChange(state, (path) => {
@@ -24,8 +22,8 @@ export default (state, elements, i18nextInstance) => {
     }
   });
 
-  render.feeds(state, feedsContainer, i18nextInstance);
-  render.posts(state, postsContainer, i18nextInstance);
+  render.feeds(state, elements, i18nextInstance);
+  render.posts(state, elements, i18nextInstance);
 
   return watchedState;
 };

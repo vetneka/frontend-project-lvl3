@@ -97,7 +97,12 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
     feedsContainer: document.querySelector('.feeds'),
     postsContainer: document.querySelector('.posts'),
 
-    postPreviewModal: document.querySelector('#postPreviewModal'),
+    postPreviewModal: {
+      title: document.querySelector('#postPreviewModal .modal-title'),
+      body: document.querySelector('#postPreviewModal .modal-body'),
+      closeButton: document.querySelector('#postPreviewModal .modal-footer [data-bs-dismiss]'),
+      readMoreLink: document.querySelector('#postPreviewModal .modal-footer [data-readmore]'),
+    },
   };
 
   const i18nextInstance = i18next.createInstance();

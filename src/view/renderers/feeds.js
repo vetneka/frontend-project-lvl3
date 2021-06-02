@@ -1,7 +1,6 @@
-/* eslint no-param-reassign: ["error", { "props": false }] */
-
-export default (state, container, i18nextInstance) => {
-  container.innerHTML = '';
+export default (state, elements, i18nextInstance) => {
+  const { feedsContainer } = elements;
+  feedsContainer.innerHTML = '';
 
   const header = document.createElement('h2');
   header.textContent = i18nextInstance.t('headlines.feeds');
@@ -9,7 +8,7 @@ export default (state, container, i18nextInstance) => {
   if (state.feeds.length === 0) {
     const p = document.createElement('p');
     p.textContent = i18nextInstance.t('noFeeds');
-    container.append(header, p);
+    feedsContainer.append(header, p);
     return;
   }
 
@@ -34,5 +33,5 @@ export default (state, container, i18nextInstance) => {
   });
 
   feedsList.append(...feedListItems);
-  container.append(header, feedsList);
+  feedsContainer.append(header, feedsList);
 };
