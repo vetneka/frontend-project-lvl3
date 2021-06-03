@@ -1,13 +1,19 @@
 export default {
   translation: {
     messages: {
-      networkError: 'Ошибка сети',
+      app: {
+        addRSS: 'RSS успешно загружен',
+      },
+    },
+    errors: {
+      app: {
+        network: 'Ошибка сети',
+        invalidRSS: 'Ресурс не содержит валидный RSS',
+      },
       form: {
         invalidURL: 'Ссылка должна быть валидным URL',
         requiredField: 'Поле не должно быть пустым',
         duplicateRSS: 'RSS уже существует',
-        invalidRSS: 'Ресурс не содержит валидный RSS',
-        addRSS: 'RSS успешно загружен',
       },
     },
     headlines: {

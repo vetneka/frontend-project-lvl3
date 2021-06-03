@@ -1,13 +1,19 @@
 export default {
   translation: {
     messages: {
-      networkError: 'Network error',
+      app: {
+        addRSS: 'RSS uploaded successfully',
+      },
+    },
+    errors: {
+      app: {
+        networkError: 'Network error',
+        invalidRSS: 'The resource does not contain a valid RSS',
+      },
       form: {
         invalidURL: 'The link must be a valid URL',
         requiredField: 'The field must not be empty',
         duplicateRSS: 'RSS already exists',
-        invalidRSS: 'The resource does not contain a valid RSS',
-        addRSS: 'RSS uploaded successfully',
       },
     },
     headlines: {
