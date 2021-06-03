@@ -1,4 +1,4 @@
-import { messagesTypes } from './constants.js';
+import { errors } from './constants.js';
 
 export default (string) => {
   const parser = new DOMParser();
@@ -7,7 +7,7 @@ export default (string) => {
   const error = xmlDOM.querySelector('parsererror');
 
   if (error) {
-    throw new Error(messagesTypes.form.invalidRSS);
+    throw new Error(errors.app.invalidRSS);
   }
 
   const feedTitle = xmlDOM.querySelector('title');

@@ -6,7 +6,7 @@ export default (state, modalElements, i18nextInstance) => {
     readMoreLink,
   } = modalElements;
 
-  const currentPost = state.posts.find((post) => post.id === state.currentPreviewPostId);
+  const currentPost = state.posts.find((post) => post.id === state.uiState.previewPostId);
 
   title.textContent = currentPost.title;
   body.textContent = currentPost.description;

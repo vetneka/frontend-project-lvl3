@@ -1,22 +1,18 @@
-export const appProcessStates = {
-  online: 'online',
-  offline: 'offline',
-};
-
-export const formProcessStates = {
-  filling: 'filling',
+export const processStates = {
+  initial: 'initial',
   sending: 'sending',
   failed: 'failed',
   finished: 'finished',
 };
 
-export const messagesTypes = {
-  networkError: 'networkError',
+export const errors = {
+  app: {
+    network: 'network',
+    invalidRSS: 'invalidRSS',
+  },
   form: {
     duplicateRSS: 'duplicateRSS',
-    invalidRSS: 'invalidRSS',
     invalidURL: 'invalidURL',
     requiredField: 'requiredField',
-    addRSS: 'addRSS',
   },
 };

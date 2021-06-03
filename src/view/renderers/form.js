@@ -1,11 +1,12 @@
-import { formProcessStates } from '../../constants.js';
+import { processStates } from '../../constants.js';
 
 export default (state, formElements, i18nextInstance) => {
   const {
     input,
     submitButton,
-    messageContainer,
   } = formElements;
+
+  submitButton.textContent = i18nextInstance.t('buttons.addFeed');
 
   if (state.form.valid) {
     input.classList.remove('is-invalid');
@@ -13,35 +14,22 @@ export default (state, formElements, i18nextInstance) => {
     input.classList.add('is-invalid');
   }
 
-  if (state.form.processState === formProcessStates.sending) {
-    input.readOnly = true;
-    submitButton.disabled = true;
-  } else {
-    input.readOnly = false;
-    submitButton.disabled = false;
-  }
+  if (state.form.processState) {
+    if (state.form.processState === processStates.sending) {
+      input.readOnly = true;
+      submitButton.disabled = true;
+    } else {
+      input.readOnly = false;
+      submitButton.disabled = false;
+    }
 
-  submitButton.textContent = i18nextInstance.t('buttons.addFeed');
-
-  messageContainer.classList.remove('show');
-
-  setTimeout(() => {
-    if (state.form.processState === formProcessStates.finished) {
-      messageContainer.classList.remove('text-danger');
-      messageContainer.classList.add('text-success');
-      input.value = '';
+    if (state.form.processState === processStates.initial) {
       input.focus();
     }
 
-    if (state.form.processState === formProcessStates.failed) {
-      messageContainer.classList.remove('text-success');
-      messageContainer.classList.add('text-danger');
+    if (state.form.processState === processStates.finished) {
+      input.value = '';
+      input.focus();
     }
-
-    messageContainer.textContent = (state.form.messageType)
-      ? i18nextInstance.t(`messages.form.${state.form.messageType}`)
-      : '';
-
-    messageContainer.classList.add('show');
-  }, 100);
+  }
 };

@@ -6,7 +6,11 @@ import 'bootstrap/js/dist/modal';
 import i18next from 'i18next';
 import resources from './locales/index.js';
 
-import { appProcessStates, formProcessStates, messagesTypes } from './constants.js';
+import {
+  processStates,
+  errors,
+} from './constants.js';
+
 import {
   updateState,
   getProxyFor,
@@ -16,12 +20,22 @@ import {
 } from './utils.js';
 
 import initView from './view/initView.js';
-
 import parseRSS from './rssParser.js';
 
-const validate = (value) => {
+const validate = (feeds, value) => {
   const scheme = yup.string().trim().required().url();
-  return scheme.validate(value);
+
+  try {
+    scheme.validateSync(value);
+
+    if (isDuplicateFeed(feeds, value)) {
+      throw new Error(errors.form.duplicateRSS);
+    }
+
+    return null;
+  } catch (error) {
+    return error;
+  }
 };
 
 const loadRssFeed = (url) => axios(getProxyFor(url))
@@ -30,7 +44,7 @@ const loadRssFeed = (url) => axios(getProxyFor(url))
     return contents;
   })
   .catch(() => {
-    throw new Error(messagesTypes.networkError);
+    throw new Error(errors.app.network);
   });
 
 const loadNewPosts = (feeds) => {
@@ -70,19 +84,21 @@ const listenToNewPosts = (watchedState) => {
 };
 
 export default (innerListenToNewPosts = listenToNewPosts) => {
+  const defaultLanguage = 'ru';
+
   const state = {
     feeds: [],
     posts: [],
-    currentPreviewPostId: null,
-    processState: appProcessStates.online,
-    messageType: null,
+    processStateError: null,
+    processState: processStates.initial,
     form: {
       valid: true,
-      processState: formProcessStates.filling,
-      messageType: null,
+      processStateError: null,
+      processState: processStates.initial,
     },
     uiState: {
       viewedPostsIds: new Set(),
+      previewPostId: null,
     },
   };
 
@@ -91,9 +107,9 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
       form: document.querySelector('.feed-form'),
       input: document.querySelector('[name="add-rss"]'),
       submitButton: document.querySelector('button[type="submit"]'),
-      messageContainer: document.querySelector('.message-container'),
     },
 
+    messageContainer: document.querySelector('.message-container'),
     feedsContainer: document.querySelector('.feeds'),
     postsContainer: document.querySelector('.posts'),
 
@@ -107,17 +123,10 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
 
   const i18nextInstance = i18next.createInstance();
 
-  yup.setLocale({
-    mixed: {
-      required: messagesTypes.form.requiredField,
-    },
-    string: {
-      url: messagesTypes.form.invalidURL,
-    },
-  });
+  yup.setLocale(resources.yup);
 
-  i18nextInstance.init({
-    lng: 'ru',
+  return i18nextInstance.init({
+    lng: defaultLanguage,
     resources: {
       ru: resources.ru,
     },
@@ -126,18 +135,18 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
     updateState.state = watched;
 
     elements.postsContainer.addEventListener('click', (event) => {
-      const currentPostId = event.target.dataset.postId;
+      const previewPostId = event.target.dataset.postId;
 
-      if (!currentPostId) {
+      if (!previewPostId) {
         return;
       }
 
       event.preventDefault();
 
       updateState({
-        currentPreviewPostId: currentPostId,
         uiState: {
-          viewedPostsIds: watched.uiState.viewedPostsIds.add(currentPostId),
+          previewPostId,
+          viewedPostsIds: watched.uiState.viewedPostsIds.add(previewPostId),
         },
       });
     });
@@ -149,23 +158,29 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
       const rssUrl = formData.get('add-rss');
 
       updateState({
-        messageType: null,
-        processState: appProcessStates.online,
+        processStateError: null,
+        processState: processStates.initial,
         form: {
-          messageType: null,
           valid: true,
-          processState: formProcessStates.sending,
+          processStateError: null,
+          processState: processStates.sending,
         },
       });
 
-      validate(rssUrl)
-        .then((url) => {
-          if (isDuplicateFeed(watched.feeds, url)) {
-            throw new Error(messagesTypes.form.duplicateRSS);
-          }
+      const validateError = validate(watched.feeds, rssUrl);
 
-          return loadRssFeed(url);
-        })
+      if (validateError) {
+        updateState({
+          form: {
+            valid: false,
+            processStateError: validateError.message,
+            processState: processStates.failed,
+          },
+        });
+        return;
+      }
+
+      loadRssFeed(rssUrl)
         .then((data) => {
           const [feed, posts] = parseRSS(data);
 
@@ -173,41 +188,39 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
           const normalizedPosts = normalizePosts(posts, { feedId: normalizedFeed.id });
 
           updateState({
+            processStateError: null,
+            processState: processStates.finished,
             feeds: [normalizedFeed, ...watched.feeds],
             posts: [...normalizedPosts, ...watched.posts],
             form: {
-              messageType: messagesTypes.form.addRSS,
-              processState: formProcessStates.finished,
+              processState: processStates.finished,
             },
           });
         })
         .catch((error) => {
-          const { message } = error;
-
-          switch (message) {
-            case messagesTypes[message]:
+          switch (error.message) {
+            case errors.app.network:
               updateState({
-                form: {
-                  processState: formProcessStates.filling,
-                },
-                messageType: messagesTypes[message],
-                processState: appProcessStates.offline,
+                processStateError: errors.app.network,
               });
               break;
 
-            case messagesTypes.form[message]:
+            case errors.app.invalidRSS:
               updateState({
-                form: {
-                  valid: false,
-                  messageType: messagesTypes.form[message],
-                  processState: formProcessStates.failed,
-                },
+                processStateError: errors.app.invalidRSS,
               });
               break;
 
             default:
-              throw new Error(`Unexpected type error: ${message}`);
+              throw new Error(`Unexpected type error: ${error.message}`);
           }
+
+          updateState({
+            processState: processStates.failed,
+            form: {
+              processState: processStates.initial,
+            },
+          });
         });
     });
 

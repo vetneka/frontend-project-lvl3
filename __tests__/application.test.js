@@ -83,14 +83,15 @@ beforeEach(() => {
 
   document.body.innerHTML = initialHtml;
 
-  run(() => {});
-
-  elements.input = screen.getByRole('textbox', { name: 'url' });
-  elements.submit = screen.getByRole('button', { name: 'add' });
-  elements.messageContainer = screen.getByTestId('message-container');
-  elements.feedsContainer = screen.getByTestId('feeds');
-  elements.postsContainer = screen.getByTestId('posts');
-  elements.postPreviewModal = screen.getByTestId('postPreviewModal');
+  return run(() => {})
+    .then(() => {
+      elements.input = screen.getByRole('textbox', { name: 'url' });
+      elements.submit = screen.getByRole('button', { name: 'add' });
+      elements.messageContainer = screen.getByTestId('message-container');
+      elements.feedsContainer = screen.getByTestId('feeds');
+      elements.postsContainer = screen.getByTestId('posts');
+      elements.postPreviewModal = screen.getByTestId('postPreviewModal');
+    });
 });
 
 afterEach(() => {
@@ -108,7 +109,7 @@ describe('check interface texts', () => {
     userEvent.click(elements.submit);
 
     return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.form.addRSS')}`)).toBeInTheDocument();
+      expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
     })
       .then(() => {
         scope.done();
@@ -120,7 +121,7 @@ describe('check interface texts', () => {
     userEvent.click(elements.submit);
 
     return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.form.requiredField')}`)).toBeInTheDocument();
+      expect(screen.getByText(`${i18nextInstance.t('errors.form.requiredField')}`)).toBeInTheDocument();
     });
   });
 
@@ -129,7 +130,7 @@ describe('check interface texts', () => {
     userEvent.click(elements.submit);
 
     return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.form.invalidURL')}`)).toBeInTheDocument();
+      expect(screen.getByText(`${i18nextInstance.t('errors.form.invalidURL')}`)).toBeInTheDocument();
     });
   });
 
@@ -142,14 +143,14 @@ describe('check interface texts', () => {
     userEvent.click(elements.submit);
 
     return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.form.addRSS')}`)).toBeInTheDocument();
+      expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
     })
       .then(() => {
         userEvent.type(elements.input, urls.hexlet);
         userEvent.click(elements.submit);
 
         return waitFor(() => {
-          expect(screen.getByText(`${i18nextInstance.t('messages.form.duplicateRSS')}`)).toBeInTheDocument();
+          expect(screen.getByText(`${i18nextInstance.t('errors.form.duplicateRSS')}`)).toBeInTheDocument();
         });
       })
       .then(() => {
@@ -168,7 +169,7 @@ describe('check interface texts', () => {
     userEvent.click(elements.submit);
 
     return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.form.invalidRSS')}`)).toBeInTheDocument();
+      expect(screen.getByText(`${i18nextInstance.t('errors.app.invalidRSS')}`)).toBeInTheDocument();
     })
       .then(() => {
         scope.done();
@@ -184,7 +185,7 @@ describe('check interface texts', () => {
     userEvent.click(elements.submit);
 
     return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.networkError')}`)).toBeInTheDocument();
+      expect(screen.getByText(`${i18nextInstance.t('errors.app.network')}`)).toBeInTheDocument();
     })
       .then(() => {
         scope.done();
@@ -237,7 +238,7 @@ describe('check base UI logic', () => {
     userEvent.click(elements.submit);
 
     return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.form.addRSS')}`)).toBeInTheDocument();
+      expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
     })
       .then(() => {
         const feedListItems = within(elements.feedsContainer).getAllByRole('listitem');
@@ -261,7 +262,7 @@ describe('check base UI logic', () => {
         });
       })
       .then(() => waitFor(() => {
-        expect(screen.getByText(`${i18nextInstance.t('messages.form.addRSS')}`)).toBeInTheDocument();
+        expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
       }))
       .then(() => {
         const feedListItems = within(elements.feedsContainer).getAllByRole('listitem');
@@ -287,7 +288,7 @@ describe('check base UI logic', () => {
     userEvent.click(elements.submit);
 
     return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.form.addRSS')}`)).toBeInTheDocument();
+      expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
     })
       .then(() => {
         const previewButtons = within(elements.postsContainer).getAllByRole('button');
@@ -316,7 +317,7 @@ describe('check base UI logic', () => {
     userEvent.click(elements.submit);
 
     return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.form.addRSS')}`)).toBeInTheDocument();
+      expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
     })
       .then(() => {
         const previewButtons = within(elements.postsContainer).getAllByRole('button');
