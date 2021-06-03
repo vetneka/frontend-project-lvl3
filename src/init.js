@@ -1,87 +1,25 @@
 import * as yup from 'yup';
-import { differenceWith } from 'lodash';
-import axios from 'axios';
 import 'bootstrap/js/dist/modal';
 
 import i18next from 'i18next';
 import resources from './locales/index.js';
 
-import {
-  processStates,
-  errors,
-} from './constants.js';
+import { processStates, errors } from './constants.js';
+import updateState from './utils.js';
 
 import {
-  updateState,
-  getProxyFor,
-  isDuplicateFeed,
+  rssParser,
+  validate,
   normalizeFeed,
   normalizePosts,
-} from './utils.js';
+} from './rss/index.js';
+
+import {
+  loadRssFeed,
+  listenToNewPosts,
+} from './api.js';
 
 import initView from './view/initView.js';
-import parseRSS from './rssParser.js';
-
-const validate = (feeds, value) => {
-  const scheme = yup.string().trim().required().url();
-
-  try {
-    scheme.validateSync(value);
-
-    if (isDuplicateFeed(feeds, value)) {
-      throw new Error(errors.form.duplicateRSS);
-    }
-
-    return null;
-  } catch (error) {
-    return error;
-  }
-};
-
-const loadRssFeed = (url) => axios(getProxyFor(url))
-  .then((response) => {
-    const { contents } = response.data;
-    return contents;
-  })
-  .catch(() => {
-    throw new Error(errors.app.network);
-  });
-
-const loadNewPosts = (feeds) => {
-  const requests = feeds.map(({ url }) => loadRssFeed(url));
-  return Promise.all(requests)
-    .then((rssFeeds) => rssFeeds.flatMap((rssFeed, index) => {
-      const currentFeed = feeds[index];
-      const [, posts] = parseRSS(rssFeed);
-
-      return normalizePosts(posts, currentFeed.id);
-    }));
-};
-
-const listenToNewPosts = (watchedState) => {
-  const timeoutMs = 5000;
-
-  if (watchedState.feeds.length === 0) {
-    setTimeout(listenToNewPosts, timeoutMs, watchedState);
-    return;
-  }
-
-  loadNewPosts(watchedState.feeds)
-    .then((newPosts) => {
-      const newUniquePosts = differenceWith(
-        newPosts,
-        watchedState.posts,
-        (newPost, oldPost) => newPost.pubDate <= oldPost.pubDate,
-      );
-
-      updateState({
-        posts: [...newUniquePosts, ...watchedState.posts],
-      });
-    })
-    .finally(() => {
-      setTimeout(listenToNewPosts, timeoutMs, watchedState);
-    });
-};
 
 export default (innerListenToNewPosts = listenToNewPosts) => {
   const defaultLanguage = 'ru';
@@ -182,7 +120,7 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
 
       loadRssFeed(rssUrl)
         .then((data) => {
-          const [feed, posts] = parseRSS(data);
+          const [feed, posts] = rssParser(data);
 
           const normalizedFeed = normalizeFeed(feed, { url: rssUrl });
           const normalizedPosts = normalizePosts(posts, { feedId: normalizedFeed.id });
