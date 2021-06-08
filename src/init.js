@@ -1,25 +1,79 @@
-import * as yup from 'yup';
 import 'bootstrap/js/dist/modal';
+import * as yup from 'yup';
+import axios from 'axios';
+import { uniqueId, differenceWith } from 'lodash';
 
 import i18next from 'i18next';
 import resources from './locales/index.js';
 
 import { processStates, errors } from './constants.js';
-import updateState from './utils.js';
+import updateState from './utils/updateState.js';
 
-import {
-  rssParser,
-  validate,
-  normalizeFeed,
-  normalizePosts,
-} from './rss/index.js';
+import rssParser from './rssParser.js';
+import validate from './validate.js';
 
-import {
-  loadRssFeed,
-  listenToNewPosts,
-} from './api.js';
+import initView from './initView.js';
 
-import initView from './view/initView.js';
+const getProxyUrl = (url) => (
+  `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}&disableCache=true`
+);
+
+const normalizeFeed = (feed, options = {}) => ({
+  ...feed,
+  id: uniqueId(),
+  ...options,
+});
+
+const normalizePosts = (posts, options = {}) => posts.map((post) => ({
+  ...post,
+  id: uniqueId(),
+  ...options,
+}));
+
+const loadRssFeed = (url) => axios(getProxyUrl(url))
+  .then((response) => {
+    const { contents } = response.data;
+    return contents;
+  })
+  .catch(() => {
+    throw new Error(errors.app.network);
+  });
+
+const loadNewPosts = (feeds) => {
+  const requests = feeds.map(({ url }) => loadRssFeed(url));
+  return Promise.all(requests)
+    .then((rssFeeds) => rssFeeds.flatMap((rssFeed, index) => {
+      const currentFeed = feeds[index];
+      const [, posts] = rssParser(rssFeed);
+
+      return normalizePosts(posts, currentFeed.id);
+    }));
+};
+
+const listenToNewPosts = (watchedState) => {
+  const timeoutMs = 5000;
+
+  if (watchedState.feeds.length === 0) {
+    setTimeout(listenToNewPosts, timeoutMs, watchedState);
+    return;
+  }
+
+  loadNewPosts(watchedState.feeds)
+    .then((newPosts) => {
+      const newUniquePosts = differenceWith(
+        newPosts,
+        watchedState.posts,
+        (newPost, oldPost) => newPost.pubDate <= oldPost.pubDate,
+      );
+
+      updateState({
+        posts: [...newUniquePosts, ...watchedState.posts],
+      });
+    })
+    .finally(() => {
+      setTimeout(listenToNewPosts, timeoutMs, watchedState);
+    });
+};
 
 export default (innerListenToNewPosts = listenToNewPosts) => {
   const defaultLanguage = 'ru';

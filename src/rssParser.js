@@ -1,4 +1,4 @@
-import { errors } from '../constants.js';
+import { errors } from './constants.js';
 
 export default (string) => {
   const parser = new DOMParser();

@@ -1,5 +1,5 @@
 import onChange from 'on-change';
-import render from './renderers/index.js';
+import render from './view/index.js';
 
 export default (state, elements, i18nextInstance) => {
   const {

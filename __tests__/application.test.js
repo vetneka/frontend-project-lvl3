@@ -11,7 +11,7 @@ import nock from 'nock';
 import i18next from 'i18next';
 import resources from '../src/locales/index.js';
 
-import { rssParser } from '../src/rss/index.js';
+import rssParser from '../src/rssParser.js';
 import run from '../src/init.js';
 
 const getFixturesPath = (fileName) => path.join('__fixtures__', fileName);
