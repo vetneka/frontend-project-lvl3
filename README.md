@@ -10,7 +10,7 @@
 [RSS Reader](https://frontend-project-lvl3-vetneka.vercel.app/) is a service for aggregating RSS feeds. It allows you to add an unlimited number of RSS feeds, updates them and adds new entries to the general stream.
 
 <p align="center">
-  <img src="https://s225vla.storage.yandex.net/rdisk/f0d9f2add26514b8fd1ed211c1b9ad6ef35cd3ce658595e7c2d7690683293425/60b9ea55/bXVnV3uO7QCHjm5JlPKCOkt1DjjKyq6dZPnW-vnL0OFyzxtEiXgZfkt35TN0qR0q_onf_evkDWB2Xovb70hdeA==?uid=75561265&filename=hexlet-frontend-3.png&disposition=inline&hash=&limit=0&content_type=image%2Fpng&owner_uid=75561265&fsize=70781&hid=bcc970f85b11bb346a4e174889de1020&media_type=image&tknv=v2&etag=88d9deea8048cdbf95b9a51c2586099a&rtoken=fZaRCH3e02P8&force_default=yes&ycrid=na-2ea8676cfb63b7e3c84a8ce647478e68-downloader9f&ts=5c3ecd7df7f40&s=7058847e268b419cc43d0c87f5dec730beff69184c5c00f81c6eb848e958f8bc&pb=U2FsdGVkX19wemg8g02IY4sugjT0GvlSHsc9_UaYi17K94h0I91Yl4cQgZrQpnBZt8DjhmuNPO1bToHO4g3Dc1QDtWn2I0O_HGwiomYftLs" width="50%">
+  <img src="https://downloader.disk.yandex.ru/preview/ff172ca31af9fd7e0367eacb85ac2e8857376ee9b6c72e3abe11abed940a4556/60bff6bb/08DZ4tkONbS9eb8BUi844CaZ1VWZ2UdgVHGqFoJsGZ2FPiSJswsbK3XbbvTsTSsdK87RVREwRjZ_Mz7pBZNoFQ%3D%3D?uid=0&filename=hexlet-frontend-3.png&disposition=inline&hash=&limit=0&content_type=image%2Fpng&owner_uid=0&tknv=v2&size=1294x637" width="50%">
 </p>
 
 ## Used technologies
