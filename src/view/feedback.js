@@ -7,23 +7,19 @@ export default (state, elements, i18nextInstance) => {
   messageContainer.classList.remove('show', 'text-danger', 'text-success');
 
   setTimeout(() => {
-    if (state.processState) {
-      if (state.processState === processStates.failed) {
-        messageContainer.classList.add('text-danger');
-        messageContainer.textContent = i18nextInstance.t(`errors.app.${state.processStateError}`);
-      }
-
-      if (state.processState === processStates.finished) {
-        messageContainer.classList.add('text-success');
-        messageContainer.textContent = i18nextInstance.t('messages.app.addRSS');
-      }
+    if (state.processState === processStates.failed) {
+      messageContainer.classList.add('text-danger');
+      messageContainer.textContent = i18nextInstance.t(`errors.app.${state.processStateError}`);
     }
 
-    if (state.form.processState) {
-      if (state.form.processState === processStates.failed) {
-        messageContainer.classList.add('text-danger');
-        messageContainer.textContent = i18nextInstance.t(`errors.form.${state.form.processStateError}`);
-      }
+    if (state.processState === processStates.finished) {
+      messageContainer.classList.add('text-success');
+      messageContainer.textContent = i18nextInstance.t('messages.app.addRSS');
+    }
+
+    if (state.form.processState === processStates.failed) {
+      messageContainer.classList.add('text-danger');
+      messageContainer.textContent = i18nextInstance.t(`errors.form.${state.form.processStateError}`);
     }
 
     messageContainer.classList.add('show');

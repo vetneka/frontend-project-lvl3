@@ -14,22 +14,20 @@ export default (state, formElements, i18nextInstance) => {
     input.classList.add('is-invalid');
   }
 
-  if (state.form.processState) {
-    if (state.form.processState === processStates.sending) {
-      input.readOnly = true;
-      submitButton.disabled = true;
-    } else {
-      input.readOnly = false;
-      submitButton.disabled = false;
-    }
+  if (state.form.processState === processStates.sending) {
+    input.readOnly = true;
+    submitButton.disabled = true;
+  } else {
+    input.readOnly = false;
+    submitButton.disabled = false;
+  }
 
-    if (state.form.processState === processStates.initial) {
-      input.focus();
-    }
+  if (state.form.processState === processStates.initial) {
+    input.focus();
+  }
 
-    if (state.form.processState === processStates.finished) {
-      input.value = '';
-      input.focus();
-    }
+  if (state.form.processState === processStates.finished) {
+    input.value = '';
+    input.focus();
   }
 };

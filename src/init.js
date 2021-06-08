@@ -31,10 +31,7 @@ const normalizePosts = (posts, options = {}) => posts.map((post) => ({
 }));
 
 const loadRssFeed = (url) => axios(getProxyUrl(url))
-  .then((response) => {
-    const { contents } = response.data;
-    return contents;
-  })
+  .then((response) => response.data.contents)
   .catch(() => {
     throw new Error(errors.app.network);
   });
