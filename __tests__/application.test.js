@@ -79,11 +79,9 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  jest.useFakeTimers();
-
   document.body.innerHTML = initialHtml;
 
-  return run(() => {})
+  return run()
     .then(() => {
       elements.input = screen.getByRole('textbox', { name: 'url' });
       elements.submit = screen.getByRole('button', { name: 'add' });
@@ -94,110 +92,83 @@ beforeEach(() => {
     });
 });
 
-afterEach(() => {
-  jest.runOnlyPendingTimers();
-  jest.useRealTimers();
-});
+const getNockScope = (url, response = '', responseStatus = 200) => nock(getProxyHost())
+  .get(getProxyPath(url))
+  .reply(responseStatus, response, { 'Access-Control-Allow-Origin': '*' });
 
 describe('check interface texts', () => {
   test('feed added successfully', () => {
-    const scope = nock(getProxyHost())
-      .get(getProxyPath(urls.hexlet))
-      .reply(200, rss.hexlet, { 'Access-Control-Allow-Origin': '*' });
+    const scope = getNockScope(urls.hexlet, rss.hexlet);
 
     userEvent.type(elements.input, urls.hexlet);
     userEvent.click(elements.submit);
 
     return waitFor(() => {
       expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
-    })
-      .then(() => {
-        scope.done();
-      });
+      scope.done();
+    });
   });
 
   test('validate required', () => {
     userEvent.type(elements.input, ' ');
     userEvent.click(elements.submit);
 
-    return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('errors.form.requiredField')}`)).toBeInTheDocument();
-    });
+    expect(screen.getByText(`${i18nextInstance.t('errors.form.requiredField')}`)).toBeInTheDocument();
   });
 
   test('validate url', () => {
     userEvent.type(elements.input, 'Rss agregator');
     userEvent.click(elements.submit);
 
-    return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('errors.form.invalidURL')}`)).toBeInTheDocument();
-    });
+    expect(screen.getByText(`${i18nextInstance.t('errors.form.invalidURL')}`)).toBeInTheDocument();
   });
 
   test('validate duplicate rss', () => {
-    const scope = nock(getProxyHost())
-      .get(getProxyPath(urls.hexlet))
-      .reply(200, rss.hexlet, { 'Access-Control-Allow-Origin': '*' });
+    const scope = getNockScope(urls.hexlet, rss.hexlet);
 
     userEvent.type(elements.input, urls.hexlet);
     userEvent.click(elements.submit);
 
     return waitFor(() => {
       expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
-    })
-      .then(() => {
-        userEvent.type(elements.input, urls.hexlet);
-        userEvent.click(elements.submit);
+      scope.done();
 
-        return waitFor(() => {
-          expect(screen.getByText(`${i18nextInstance.t('errors.form.duplicateRSS')}`)).toBeInTheDocument();
-        });
-      })
-      .then(() => {
-        scope.done();
-      });
+      userEvent.type(elements.input, urls.hexlet);
+      userEvent.click(elements.submit);
+
+      expect(screen.getByText(`${i18nextInstance.t('errors.form.duplicateRSS')}`)).toBeInTheDocument();
+    });
   });
 
   test('parsing rss', () => {
     const urlWithInvalidRSS = 'https://google.com';
-
-    const scope = nock(getProxyHost())
-      .get(getProxyPath(urlWithInvalidRSS))
-      .reply(200, rss.invalid, { 'Access-Control-Allow-Origin': '*' });
+    const scope = getNockScope(urlWithInvalidRSS, rss.invalid);
 
     userEvent.type(elements.input, urlWithInvalidRSS);
     userEvent.click(elements.submit);
 
     return waitFor(() => {
       expect(screen.getByText(`${i18nextInstance.t('errors.app.invalidRSS')}`)).toBeInTheDocument();
-    })
-      .then(() => {
-        scope.done();
-      });
+      scope.done();
+    });
   });
 
   test('network error', () => {
-    const scope = nock(getProxyHost())
-      .get(getProxyPath(urls.hexlet))
-      .reply(400, '', { 'Access-Control-Allow-Origin': '*' });
+    const scope = getNockScope(urls.hexlet, '', 400);
 
     userEvent.type(elements.input, urls.hexlet);
     userEvent.click(elements.submit);
 
     return waitFor(() => {
       expect(screen.getByText(`${i18nextInstance.t('errors.app.network')}`)).toBeInTheDocument();
-    })
-      .then(() => {
-        scope.done();
-      });
+      scope.done();
+    });
   });
 });
 
 describe('check base UI logic', () => {
   test('form is disabled while submitting', () => {
-    const scope = nock(getProxyHost())
-      .get(getProxyPath(urls.hexlet))
-      .reply(200, '', { 'Access-Control-Allow-Origin': '*' });
+    const scope = getNockScope(urls.hexlet, '');
 
     expect(elements.input).not.toHaveAttribute('readonly');
     expect(elements.submit).toBeEnabled();
@@ -211,20 +182,13 @@ describe('check base UI logic', () => {
     return waitFor(() => {
       expect(elements.input).not.toHaveAttribute('readonly');
       expect(elements.submit).toBeEnabled();
-    })
-      .then(() => {
-        scope.done();
-      });
+      scope.done();
+    });
   });
 
   test('can add new feeds', () => {
-    const scope1 = nock(getProxyHost())
-      .get(getProxyPath(urls.hexlet))
-      .reply(200, rss.hexlet, { 'Access-Control-Allow-Origin': '*' });
-
-    const scope2 = nock(getProxyHost())
-      .get(getProxyPath(urls.devTo))
-      .reply(200, rss.devTo, { 'Access-Control-Allow-Origin': '*' });
+    const scope1 = getNockScope(urls.hexlet, rss.hexlet);
+    const scope2 = getNockScope(urls.devTo, rss.devTo);
 
     const state = {
       addedFeeds: [],
@@ -239,17 +203,17 @@ describe('check base UI logic', () => {
 
     return waitFor(() => {
       expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
+      scope1.done();
+
+      const feedListItems = within(elements.feedsContainer).getAllByRole('listitem');
+      const postsListItems = within(elements.postsContainer).getAllByRole('listitem');
+
+      expect(feedListItems.length).toBe(1);
+      expect(postsListItems.length).toBe(2);
+
+      checkFeedsStructure(feedListItems, state.addedFeeds);
+      checkPostsStructure(postsListItems, state.addedPosts);
     })
-      .then(() => {
-        const feedListItems = within(elements.feedsContainer).getAllByRole('listitem');
-        const postsListItems = within(elements.postsContainer).getAllByRole('listitem');
-
-        expect(feedListItems.length).toBe(1);
-        expect(postsListItems.length).toBe(2);
-
-        checkFeedsStructure(feedListItems, state.addedFeeds);
-        checkPostsStructure(postsListItems, state.addedPosts);
-      })
       .then(() => {
         state.addedFeeds = [devToFeed, ...state.addedFeeds];
         state.addedPosts = [...devToPosts, ...state.addedPosts];
@@ -258,12 +222,10 @@ describe('check base UI logic', () => {
         userEvent.click(elements.submit);
 
         return waitFor(() => {
-          expect(elements.messageContainer).toBeEmptyDOMElement();
+          expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
+          scope2.done();
         });
       })
-      .then(() => waitFor(() => {
-        expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
-      }))
       .then(() => {
         const feedListItems = within(elements.feedsContainer).getAllByRole('listitem');
         const postsListItems = within(elements.postsContainer).getAllByRole('listitem');
@@ -273,54 +235,41 @@ describe('check base UI logic', () => {
 
         checkFeedsStructure(feedListItems, state.addedFeeds);
         checkPostsStructure(postsListItems, state.addedPosts);
-
-        scope1.done();
-        scope2.done();
       });
   });
 
   test('mark a post as read', () => {
-    const scope = nock(getProxyHost())
-      .get(getProxyPath(urls.hexlet))
-      .reply(200, rss.hexlet, { 'Access-Control-Allow-Origin': '*' });
+    const scope = getNockScope(urls.hexlet, rss.hexlet);
+    const postsContainer = within(elements.postsContainer);
 
     userEvent.type(elements.input, urls.hexlet);
     userEvent.click(elements.submit);
 
-    return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
-    })
-      .then(() => {
-        const previewButtons = within(elements.postsContainer).getAllByRole('button');
+    return postsContainer.findAllByRole('button')
+      .then((previewButtons) => {
         const firstPostButton = previewButtons[0];
         const firstPost = hexletPosts[0];
 
-        expect(within(elements.postsContainer).getByText(firstPost.title)).not.toHaveClass('fw-normal');
-
+        expect(postsContainer.getByText(firstPost.title)).not.toHaveClass('fw-normal');
         userEvent.click(firstPostButton);
 
         return waitFor(() => {
-          expect(within(elements.postsContainer).getByText(firstPost.title)).toHaveClass('fw-normal');
+          expect(postsContainer.getByText(firstPost.title)).toHaveClass('fw-normal');
+          scope.done();
         });
-      })
-      .then(() => {
-        scope.done();
       });
   });
 
   test('post preview with correct data', () => {
-    const scope = nock(getProxyHost())
-      .get(getProxyPath(urls.hexlet))
-      .reply(200, rss.hexlet, { 'Access-Control-Allow-Origin': '*' });
+    const scope = getNockScope(urls.hexlet, rss.hexlet);
+    const postsContainer = within(elements.postsContainer);
 
     userEvent.type(elements.input, urls.hexlet);
     userEvent.click(elements.submit);
 
-    return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
-    })
+    return postsContainer.findAllByRole('button')
       .then(() => {
-        const previewButtons = within(elements.postsContainer).getAllByRole('button');
+        const previewButtons = postsContainer.getAllByRole('button');
         const firstPostButton = previewButtons[0];
         const firstPost = hexletPosts[0];
 
@@ -342,11 +291,9 @@ describe('check base UI logic', () => {
         userEvent.click(modalCloseButton);
 
         return waitFor(() => {
-          expect(elements.postPreviewModal).not.toHaveClass('show');
+          expect(elements.postPreviewModal).toHaveClass('show');
+          scope.done();
         });
-      })
-      .then(() => {
-        scope.done();
       });
   });
 });

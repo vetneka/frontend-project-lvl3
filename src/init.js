@@ -49,7 +49,7 @@ const loadNewPosts = (feeds) => {
 };
 
 const listenToNewPosts = (watchedState) => {
-  const timeoutMs = 5000;
+  const timeoutMs = 30000;
 
   loadNewPosts(watchedState.feeds)
     .then((newPosts) => {
@@ -66,7 +66,7 @@ const listenToNewPosts = (watchedState) => {
     });
 };
 
-export default (innerListenToNewPosts = listenToNewPosts) => {
+export default () => {
   const defaultLanguage = 'ru';
 
   const state = {
@@ -180,6 +180,6 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
         });
     });
 
-    innerListenToNewPosts(watchedState);
+    listenToNewPosts(watchedState);
   });
 };
