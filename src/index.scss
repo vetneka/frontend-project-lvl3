@@ -5,3 +5,10 @@ $component-active-bg: #198754;
 .message-container {
   min-height: 24px;
 }
+
+.btn {
+  transition:
+    opacity 0.15s linear,
+    background-color 0.15s linear,
+    color 0.15s linear;
+}
