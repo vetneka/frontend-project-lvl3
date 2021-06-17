@@ -1,27 +1,72 @@
-import * as yup from 'yup';
+/* eslint no-param-reassign: ["error", { "props": false }] */
+
 import 'bootstrap/js/dist/modal';
+import * as yup from 'yup';
+import axios from 'axios';
+import { uniqueId, differenceWith } from 'lodash';
 
 import i18next from 'i18next';
 import resources from './locales/index.js';
 
 import { processStates, errors } from './constants.js';
-import updateState from './utils.js';
 
-import {
-  rssParser,
-  validate,
-  normalizeFeed,
-  normalizePosts,
-} from './rss/index.js';
+import rssParser from './rssParser.js';
+import validate from './validate.js';
 
-import {
-  loadRssFeed,
-  listenToNewPosts,
-} from './api.js';
+import initView from './initView.js';
 
-import initView from './view/initView.js';
+const getProxyUrl = (url) => (
+  `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}&disableCache=true`
+);
 
-export default (innerListenToNewPosts = listenToNewPosts) => {
+const normalizeFeed = (feed, options = {}) => ({
+  ...feed,
+  id: uniqueId(),
+  ...options,
+});
+
+const normalizePosts = (posts, options = {}) => posts.map((post) => ({
+  ...post,
+  id: uniqueId(),
+  ...options,
+}));
+
+const loadRssFeed = (url) => axios(getProxyUrl(url))
+  .then((response) => response.data.contents)
+  .catch(() => {
+    throw new Error(errors.app.network);
+  });
+
+const loadNewPosts = (feeds) => {
+  const requests = feeds.map(({ url }) => loadRssFeed(url));
+  return Promise.all(requests)
+    .then((rssFeeds) => rssFeeds.flatMap((rssFeed, index) => {
+      const currentFeed = feeds[index];
+      const [, posts] = rssParser(rssFeed);
+
+      return normalizePosts(posts, { feedId: currentFeed.id });
+    }));
+};
+
+const listenToNewPosts = (watchedState) => {
+  const timeoutMs = 30000;
+
+  loadNewPosts(watchedState.feeds)
+    .then((newPosts) => {
+      const newUniquePosts = differenceWith(
+        newPosts,
+        watchedState.posts,
+        (newPost, oldPost) => newPost.pubDate <= oldPost.pubDate,
+      );
+
+      watchedState.posts = [...newUniquePosts, ...watchedState.posts];
+    })
+    .finally(() => {
+      setTimeout(listenToNewPosts, timeoutMs, watchedState);
+    });
+};
+
+export default () => {
   const defaultLanguage = 'ru';
 
   const state = {
@@ -65,12 +110,9 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
 
   return i18nextInstance.init({
     lng: defaultLanguage,
-    resources: {
-      ru: resources.ru,
-    },
+    resources: { ru: resources.ru },
   }).then(() => {
-    const watched = initView(state, elements, i18nextInstance);
-    updateState.state = watched;
+    const watchedState = initView(state, elements, i18nextInstance);
 
     elements.postsContainer.addEventListener('click', (event) => {
       const previewPostId = event.target.dataset.postId;
@@ -81,12 +123,8 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
 
       event.preventDefault();
 
-      updateState({
-        uiState: {
-          previewPostId,
-          viewedPostsIds: watched.uiState.viewedPostsIds.add(previewPostId),
-        },
-      });
+      watchedState.uiState.previewPostId = previewPostId;
+      watchedState.uiState.viewedPostsIds = watchedState.uiState.viewedPostsIds.add(previewPostId);
     });
 
     elements.feedForm.form.addEventListener('submit', (event) => {
@@ -95,26 +133,18 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
       const formData = new FormData(event.target);
       const rssUrl = formData.get('add-rss');
 
-      updateState({
-        processStateError: null,
-        processState: processStates.initial,
-        form: {
-          valid: true,
-          processStateError: null,
-          processState: processStates.sending,
-        },
-      });
+      watchedState.processStateError = null;
+      watchedState.processState = processStates.initial;
+      watchedState.form.valid = true;
+      watchedState.form.processStateError = null;
+      watchedState.form.processState = processStates.sending;
 
-      const validateError = validate(watched.feeds, rssUrl);
+      const validateError = validate(watchedState.feeds, rssUrl);
 
       if (validateError) {
-        updateState({
-          form: {
-            valid: false,
-            processStateError: validateError.message,
-            processState: processStates.failed,
-          },
-        });
+        watchedState.form.valid = false;
+        watchedState.form.processStateError = validateError.message;
+        watchedState.form.processState = processStates.failed;
         return;
       }
 
@@ -125,43 +155,31 @@ export default (innerListenToNewPosts = listenToNewPosts) => {
           const normalizedFeed = normalizeFeed(feed, { url: rssUrl });
           const normalizedPosts = normalizePosts(posts, { feedId: normalizedFeed.id });
 
-          updateState({
-            processStateError: null,
-            processState: processStates.finished,
-            feeds: [normalizedFeed, ...watched.feeds],
-            posts: [...normalizedPosts, ...watched.posts],
-            form: {
-              processState: processStates.finished,
-            },
-          });
+          watchedState.processStateError = null;
+          watchedState.processState = processStates.finished;
+          watchedState.feeds = [normalizedFeed, ...watchedState.feeds];
+          watchedState.posts = [...normalizedPosts, ...watchedState.posts];
+          watchedState.form.processState = processStates.finished;
         })
         .catch((error) => {
           switch (error.message) {
             case errors.app.network:
-              updateState({
-                processStateError: errors.app.network,
-              });
+              watchedState.processStateError = errors.app.network;
               break;
 
             case errors.app.invalidRSS:
-              updateState({
-                processStateError: errors.app.invalidRSS,
-              });
+              watchedState.processStateError = errors.app.invalidRSS;
               break;
 
             default:
               throw new Error(`Unexpected type error: ${error.message}`);
           }
 
-          updateState({
-            processState: processStates.failed,
-            form: {
-              processState: processStates.initial,
-            },
-          });
+          watchedState.processState = processStates.failed;
+          watchedState.form.processState = processStates.initial;
         });
     });
 
-    innerListenToNewPosts(watched);
+    listenToNewPosts(watchedState);
   });
 };

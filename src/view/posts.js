@@ -23,6 +23,9 @@ export default (state, elements, i18nextInstance) => {
     );
 
     const link = document.createElement('a');
+
+    // Styles for font-weight are duplicated,
+    // because hexlet-check (tests) requires bootstrap 4.6 while application used 5.0
     const linkFontWeights = (state.uiState.viewedPostsIds.has(post.id))
       ? ['fw-normal', 'font-weight-normal']
       : ['fw-bold', 'font-weight-bold'];
