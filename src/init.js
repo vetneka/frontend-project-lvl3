@@ -49,7 +49,7 @@ const loadNewPosts = (feeds) => {
 };
 
 const listenToNewPosts = (watchedState) => {
-  const timeoutMs = 30000;
+  const timeoutMs = 5000;
 
   loadNewPosts(watchedState.feeds)
     .then((newPosts) => {
@@ -172,7 +172,8 @@ export default () => {
               break;
 
             default:
-              throw new Error(`Unexpected type error: ${error.message}`);
+              watchedState.processStateError = errors.app.unknown;
+              console.error(`Unknown error type: ${error.message}.`);
           }
 
           watchedState.processState = processStates.failed;

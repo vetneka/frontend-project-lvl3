@@ -9,6 +9,7 @@ export default {
       app: {
         network: 'Ошибка сети',
         invalidRSS: 'Ресурс не содержит валидный RSS',
+        unknown: 'Неизвестная ошибка',
       },
       form: {
         invalidURL: 'Ссылка должна быть валидным URL',
