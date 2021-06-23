@@ -65,6 +65,36 @@ const listenToNewPosts = (watchedState) => {
     });
 };
 
+const fetchRss = (url, watchedState) => loadRssFeed(url)
+  .then(([feed, posts]) => {
+    const normalizedFeed = normalizeFeed(feed, { url });
+    const normalizedPosts = normalizePosts(posts, { feedId: normalizedFeed.id });
+
+    watchedState.processStateError = null;
+    watchedState.processState = processStates.finished;
+    watchedState.feeds = [normalizedFeed, ...watchedState.feeds];
+    watchedState.posts = [...normalizedPosts, ...watchedState.posts];
+    watchedState.form.processState = processStates.finished;
+  })
+  .catch((error) => {
+    switch (error.message) {
+      case errors.app.network:
+        watchedState.processStateError = errors.app.network;
+        break;
+
+      case errors.app.invalidRSS:
+        watchedState.processStateError = errors.app.invalidRSS;
+        break;
+
+      default:
+        watchedState.processStateError = errors.app.unknown;
+        console.error(`Unknown error type: ${error.message}.`);
+    }
+
+    watchedState.processState = processStates.failed;
+    watchedState.form.processState = processStates.initial;
+  });
+
 export default () => {
   const defaultLanguage = 'ru';
 
@@ -147,35 +177,7 @@ export default () => {
         return;
       }
 
-      loadRssFeed(rssUrl)
-        .then(([feed, posts]) => {
-          const normalizedFeed = normalizeFeed(feed, { url: rssUrl });
-          const normalizedPosts = normalizePosts(posts, { feedId: normalizedFeed.id });
-
-          watchedState.processStateError = null;
-          watchedState.processState = processStates.finished;
-          watchedState.feeds = [normalizedFeed, ...watchedState.feeds];
-          watchedState.posts = [...normalizedPosts, ...watchedState.posts];
-          watchedState.form.processState = processStates.finished;
-        })
-        .catch((error) => {
-          switch (error.message) {
-            case errors.app.network:
-              watchedState.processStateError = errors.app.network;
-              break;
-
-            case errors.app.invalidRSS:
-              watchedState.processStateError = errors.app.invalidRSS;
-              break;
-
-            default:
-              watchedState.processStateError = errors.app.unknown;
-              console.error(`Unknown error type: ${error.message}.`);
-          }
-
-          watchedState.processState = processStates.failed;
-          watchedState.form.processState = processStates.initial;
-        });
+      fetchRss(rssUrl, watchedState);
     });
 
     listenToNewPosts(watchedState);
