@@ -10,7 +10,7 @@
 [RSS Reader](https://frontend-project-lvl3-vetneka.vercel.app/) is a service for aggregating RSS feeds. It allows you to add an unlimited number of RSS feeds, updates them and adds new entries to the general stream.
 
 <p align="center">
-  <img src="https://downloader.disk.yandex.ru/preview/ff172ca31af9fd7e0367eacb85ac2e8857376ee9b6c72e3abe11abed940a4556/60bff6bb/08DZ4tkONbS9eb8BUi844CaZ1VWZ2UdgVHGqFoJsGZ2FPiSJswsbK3XbbvTsTSsdK87RVREwRjZ_Mz7pBZNoFQ%3D%3D?uid=0&filename=hexlet-frontend-3.png&disposition=inline&hash=&limit=0&content_type=image%2Fpng&owner_uid=0&tknv=v2&size=1294x637" width="50%">
+  <img src="https://user-images.githubusercontent.com/44982805/123106321-986e5200-d449-11eb-890e-75d52f220d5e.png" width="50%">
 </p>
 
 ## Used technologies
@@ -62,7 +62,7 @@ RSS feed with interval updated:
 
 `http://lorem-rss.herokuapp.com/feed?unit=second&interval=5`
 
-### Offline
+### Locally
 ```
 $ git clone git@github.com:vetneka/frontend-project-lvl3.git
 $ make install
