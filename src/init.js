@@ -31,18 +31,17 @@ const normalizePosts = (posts, options = {}) => posts.map((post) => ({
   ...options,
 }));
 
-const loadRssFeed = (url) => axios(getProxyUrl(url))
-  .then((response) => response.data.contents)
-  .catch(() => {
-    throw new Error(errors.app.network);
+const loadRssFeed = (url) => axios.get(getProxyUrl(url))
+  .then((response) => rssParser(response.data.contents))
+  .catch((error) => {
+    throw (error.isAxiosError) ? new Error(errors.app.network) : error;
   });
 
 const loadNewPosts = (feeds) => {
   const requests = feeds.map(({ url }) => loadRssFeed(url));
   return Promise.all(requests)
-    .then((rssFeeds) => rssFeeds.flatMap((rssFeed, index) => {
+    .then((responses) => responses.flatMap(([, posts], index) => {
       const currentFeed = feeds[index];
-      const [, posts] = rssParser(rssFeed);
 
       return normalizePosts(posts, { feedId: currentFeed.id });
     }));
@@ -149,9 +148,7 @@ export default () => {
       }
 
       loadRssFeed(rssUrl)
-        .then((data) => {
-          const [feed, posts] = rssParser(data);
-
+        .then(([feed, posts]) => {
           const normalizedFeed = normalizeFeed(feed, { url: rssUrl });
           const normalizedPosts = normalizePosts(posts, { feedId: normalizedFeed.id });
 

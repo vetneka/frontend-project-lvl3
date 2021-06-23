@@ -24,8 +24,6 @@ const initialHtml = readFile('index.html');
 
 const i18nextInstance = i18next.createInstance();
 
-const elements = {};
-
 const urls = {
   hexlet: 'https://ru.hexlet.io/lessons.rss',
   devTo: 'https://dev.to/feed',
@@ -58,13 +56,15 @@ beforeAll(async () => {
   });
 });
 
+afterAll(() => {
+  nock.cleanAll();
+  nock.enableNetConnect();
+});
+
 beforeEach(async () => {
   document.body.innerHTML = initialHtml;
 
   await run();
-
-  elements.input = screen.getByRole('textbox', { name: 'url' });
-  elements.submit = screen.getByRole('button', { name: 'add' });
 });
 
 const getNockScope = (url, response = '', responseStatus = 200) => nock(getProxyHost())
@@ -75,23 +75,23 @@ describe('check interface texts', () => {
   test('feed added successfully', async () => {
     const scope = getNockScope(urls.hexlet, rss.hexlet);
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
     scope.done();
   });
 
   test('validate required', () => {
-    userEvent.type(elements.input, ' ');
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), ' ');
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(screen.getByText(`${i18nextInstance.t('errors.form.requiredField')}`)).toBeInTheDocument();
   });
 
   test('validate url', () => {
-    userEvent.type(elements.input, 'Rss agregator');
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), 'Rss agregator');
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(screen.getByText(`${i18nextInstance.t('errors.form.invalidURL')}`)).toBeInTheDocument();
   });
@@ -99,14 +99,14 @@ describe('check interface texts', () => {
   test('validate duplicate rss', async () => {
     const scope = getNockScope(urls.hexlet, rss.hexlet);
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
     scope.done();
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(screen.getByText(`${i18nextInstance.t('errors.form.duplicateRSS')}`)).toBeInTheDocument();
   });
@@ -114,8 +114,8 @@ describe('check interface texts', () => {
   test('parsing rss', async () => {
     const scope = getNockScope(urls.invalid, rss.invalid);
 
-    userEvent.type(elements.input, urls.invalid);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.invalid);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(await screen.findByText(`${i18nextInstance.t('errors.app.invalidRSS')}`)).toBeInTheDocument();
     scope.done();
@@ -124,8 +124,8 @@ describe('check interface texts', () => {
   test('network error', async () => {
     const scope = getNockScope(urls.hexlet, '', 400);
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(await screen.findByText(`${i18nextInstance.t('errors.app.network')}`)).toBeInTheDocument();
     scope.done();
@@ -136,18 +136,18 @@ describe('check base UI logic', () => {
   test('form is disabled while submitting', async () => {
     const scope = getNockScope(urls.hexlet, '');
 
-    expect(elements.input).not.toHaveAttribute('readonly');
-    expect(elements.submit).toBeEnabled();
+    expect(screen.getByRole('textbox', { name: 'url' })).not.toHaveAttribute('readonly');
+    expect(screen.getByRole('button', { name: 'add' })).toBeEnabled();
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
-    expect(elements.input).toHaveAttribute('readonly');
-    expect(elements.submit).toBeDisabled();
+    expect(screen.getByRole('textbox', { name: 'url' })).toHaveAttribute('readonly');
+    expect(screen.getByRole('button', { name: 'add' })).toBeDisabled();
 
     await waitFor(() => {
-      expect(elements.input).not.toHaveAttribute('readonly');
-      expect(elements.submit).toBeEnabled();
+      expect(screen.getByRole('textbox', { name: 'url' })).not.toHaveAttribute('readonly');
+      expect(screen.getByRole('button', { name: 'add' })).toBeEnabled();
     });
 
     scope.done();
@@ -163,8 +163,8 @@ describe('check base UI logic', () => {
     const secondFeed = devToFeed;
     const secondFeedPost = devToPosts[0];
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
     scope1.done();
@@ -173,8 +173,8 @@ describe('check base UI logic', () => {
     expect(screen.getByText(firstFeed.description)).toBeInTheDocument();
     expect(screen.getByText(firstFeedPost.title)).toBeInTheDocument();
 
-    userEvent.type(elements.input, urls.devTo);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.devTo);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
     scope2.done();
@@ -197,8 +197,8 @@ describe('check base UI logic', () => {
     const scope = getNockScope(urls.hexlet, rss.hexlet);
     const postsContainer = screen.getByTestId('posts');
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     const previewButtons = await within(postsContainer).findAllByText(`${i18nextInstance.t('buttons.postPreview')}`);
 
@@ -220,8 +220,8 @@ describe('check base UI logic', () => {
     const postsContainer = screen.getByTestId('posts');
     const postPreviewModal = screen.getByTestId('postPreviewModal');
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     const previewButtons = await within(postsContainer).findAllByText(`${i18nextInstance.t('buttons.postPreview')}`);
 
