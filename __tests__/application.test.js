@@ -24,11 +24,10 @@ const initialHtml = readFile('index.html');
 
 const i18nextInstance = i18next.createInstance();
 
-const elements = {};
-
 const urls = {
   hexlet: 'https://ru.hexlet.io/lessons.rss',
   devTo: 'https://dev.to/feed',
+  invalid: 'https://google.com',
 };
 
 const rss = {
@@ -46,31 +45,10 @@ const rss = {
 const [hexletFeed, hexletPosts] = rssParser(rss.hexlet.contents);
 const [devToFeed, devToPosts] = rssParser(rss.devTo.contents);
 
-const checkFeedsStructure = (screenFeeds, addedFeeds) => {
-  screenFeeds.forEach((screenFeedItem, index) => {
-    const {
-      title: addedFeedTitle,
-      description: addedFeedDescription,
-    } = addedFeeds[index];
-
-    expect(within(screenFeedItem).getByText(addedFeedTitle)).toBeInTheDocument();
-    expect(within(screenFeedItem).getByText(addedFeedDescription)).toBeInTheDocument();
-  });
-};
-
-const checkPostsStructure = (screenPosts, addedPosts) => {
-  screenPosts.forEach((screenPostItem, index) => {
-    const { title: addedPostTitle } = addedPosts[index];
-
-    expect(within(screenPostItem).getByText(addedPostTitle)).toBeInTheDocument();
-    expect(within(screenPostItem).getByRole('button')).toHaveTextContent(`${i18nextInstance.t('buttons.postPreview')}`);
-  });
-};
-
-beforeAll(() => {
+beforeAll(async () => {
   nock.disableNetConnect();
 
-  return i18nextInstance.init({
+  await i18nextInstance.init({
     lng: 'ru',
     resources: {
       ru: resources.ru,
@@ -78,18 +56,15 @@ beforeAll(() => {
   });
 });
 
-beforeEach(() => {
+afterAll(() => {
+  nock.cleanAll();
+  nock.enableNetConnect();
+});
+
+beforeEach(async () => {
   document.body.innerHTML = initialHtml;
 
-  return run()
-    .then(() => {
-      elements.input = screen.getByRole('textbox', { name: 'url' });
-      elements.submit = screen.getByRole('button', { name: 'add' });
-      elements.messageContainer = screen.getByTestId('message-container');
-      elements.feedsContainer = screen.getByTestId('feeds');
-      elements.postsContainer = screen.getByTestId('posts');
-      elements.postPreviewModal = screen.getByTestId('postPreviewModal');
-    });
+  await run();
 });
 
 const getNockScope = (url, response = '', responseStatus = 200) => nock(getProxyHost())
@@ -97,203 +72,172 @@ const getNockScope = (url, response = '', responseStatus = 200) => nock(getProxy
   .reply(responseStatus, response, { 'Access-Control-Allow-Origin': '*' });
 
 describe('check interface texts', () => {
-  test('feed added successfully', () => {
+  test('feed added successfully', async () => {
     const scope = getNockScope(urls.hexlet, rss.hexlet);
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
-    return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
-      scope.done();
-    });
+    expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
+    scope.done();
   });
 
   test('validate required', () => {
-    userEvent.type(elements.input, ' ');
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), ' ');
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(screen.getByText(`${i18nextInstance.t('errors.form.requiredField')}`)).toBeInTheDocument();
   });
 
   test('validate url', () => {
-    userEvent.type(elements.input, 'Rss agregator');
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), 'Rss agregator');
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(screen.getByText(`${i18nextInstance.t('errors.form.invalidURL')}`)).toBeInTheDocument();
   });
 
-  test('validate duplicate rss', () => {
+  test('validate duplicate rss', async () => {
     const scope = getNockScope(urls.hexlet, rss.hexlet);
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
-    return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
-      scope.done();
+    expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
+    scope.done();
 
-      userEvent.type(elements.input, urls.hexlet);
-      userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
-      expect(screen.getByText(`${i18nextInstance.t('errors.form.duplicateRSS')}`)).toBeInTheDocument();
-    });
+    expect(screen.getByText(`${i18nextInstance.t('errors.form.duplicateRSS')}`)).toBeInTheDocument();
   });
 
-  test('parsing rss', () => {
-    const urlWithInvalidRSS = 'https://google.com';
-    const scope = getNockScope(urlWithInvalidRSS, rss.invalid);
+  test('parsing rss', async () => {
+    const scope = getNockScope(urls.invalid, rss.invalid);
 
-    userEvent.type(elements.input, urlWithInvalidRSS);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.invalid);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
-    return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('errors.app.invalidRSS')}`)).toBeInTheDocument();
-      scope.done();
-    });
+    expect(await screen.findByText(`${i18nextInstance.t('errors.app.invalidRSS')}`)).toBeInTheDocument();
+    scope.done();
   });
 
-  test('network error', () => {
+  test('network error', async () => {
     const scope = getNockScope(urls.hexlet, '', 400);
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
-    return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('errors.app.network')}`)).toBeInTheDocument();
-      scope.done();
-    });
+    expect(await screen.findByText(`${i18nextInstance.t('errors.app.network')}`)).toBeInTheDocument();
+    scope.done();
   });
 });
 
 describe('check base UI logic', () => {
-  test('form is disabled while submitting', () => {
+  test('form is disabled while submitting', async () => {
     const scope = getNockScope(urls.hexlet, '');
 
-    expect(elements.input).not.toHaveAttribute('readonly');
-    expect(elements.submit).toBeEnabled();
+    expect(screen.getByRole('textbox', { name: 'url' })).not.toHaveAttribute('readonly');
+    expect(screen.getByRole('button', { name: 'add' })).toBeEnabled();
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
-    expect(elements.input).toHaveAttribute('readonly');
-    expect(elements.submit).toBeDisabled();
+    expect(screen.getByRole('textbox', { name: 'url' })).toHaveAttribute('readonly');
+    expect(screen.getByRole('button', { name: 'add' })).toBeDisabled();
 
-    return waitFor(() => {
-      expect(elements.input).not.toHaveAttribute('readonly');
-      expect(elements.submit).toBeEnabled();
-      scope.done();
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: 'url' })).not.toHaveAttribute('readonly');
+      expect(screen.getByRole('button', { name: 'add' })).toBeEnabled();
     });
+
+    scope.done();
   });
 
-  test('can add new feeds', () => {
+  test('can add new feeds', async () => {
     const scope1 = getNockScope(urls.hexlet, rss.hexlet);
     const scope2 = getNockScope(urls.devTo, rss.devTo);
 
-    const state = {
-      addedFeeds: [],
-      addedPosts: [],
-    };
+    const firstFeed = hexletFeed;
+    const firstFeedPost = hexletPosts[0];
 
-    state.addedFeeds = [hexletFeed];
-    state.addedPosts = [...hexletPosts];
+    const secondFeed = devToFeed;
+    const secondFeedPost = devToPosts[0];
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
-    return waitFor(() => {
-      expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
-      scope1.done();
+    expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
+    scope1.done();
 
-      const feedListItems = within(elements.feedsContainer).getAllByRole('listitem');
-      const postsListItems = within(elements.postsContainer).getAllByRole('listitem');
+    expect(screen.getByText(firstFeed.title)).toBeInTheDocument();
+    expect(screen.getByText(firstFeed.description)).toBeInTheDocument();
+    expect(screen.getByText(firstFeedPost.title)).toBeInTheDocument();
 
-      expect(feedListItems.length).toBe(1);
-      expect(postsListItems.length).toBe(2);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.devTo);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
-      checkFeedsStructure(feedListItems, state.addedFeeds);
-      checkPostsStructure(postsListItems, state.addedPosts);
-    })
-      .then(() => {
-        state.addedFeeds = [devToFeed, ...state.addedFeeds];
-        state.addedPosts = [...devToPosts, ...state.addedPosts];
+    expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
+    scope2.done();
 
-        userEvent.type(elements.input, urls.devTo);
-        userEvent.click(elements.submit);
+    expect(screen.getByText(secondFeed.title)).toBeInTheDocument();
+    expect(screen.getByText(secondFeed.description)).toBeInTheDocument();
+    expect(screen.getByText(secondFeedPost.title)).toBeInTheDocument();
 
-        return waitFor(() => {
-          expect(screen.getByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
-          scope2.done();
-        });
-      })
-      .then(() => {
-        const feedListItems = within(elements.feedsContainer).getAllByRole('listitem');
-        const postsListItems = within(elements.postsContainer).getAllByRole('listitem');
+    const feedListItems = within(screen.getByTestId('feeds')).getAllByRole('listitem');
+    const postsListItems = within(screen.getByTestId('posts')).getAllByRole('listitem');
 
-        expect(feedListItems.length).toBe(2);
-        expect(postsListItems.length).toBe(4);
+    expect(feedListItems).toHaveLength(2);
+    expect(postsListItems).toHaveLength(4);
 
-        checkFeedsStructure(feedListItems, state.addedFeeds);
-        checkPostsStructure(postsListItems, state.addedPosts);
-      });
+    expect(within(feedListItems[0]).getByText(secondFeed.title)).toBeInTheDocument();
+    expect(within(postsListItems[0]).getByText(secondFeedPost.title)).toBeInTheDocument();
   });
 
-  test('mark a post as read', () => {
+  test('mark a post as read', async () => {
     const scope = getNockScope(urls.hexlet, rss.hexlet);
-    const postsContainer = within(elements.postsContainer);
+    const postsContainer = screen.getByTestId('posts');
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
-    return postsContainer.findAllByRole('button')
-      .then((previewButtons) => {
-        const firstPostButton = previewButtons[0];
-        const firstPost = hexletPosts[0];
+    const previewButtons = await within(postsContainer).findAllByText(`${i18nextInstance.t('buttons.postPreview')}`);
 
-        expect(postsContainer.getByText(firstPost.title)).not.toHaveClass('fw-normal');
-        userEvent.click(firstPostButton);
+    const firstPostButton = previewButtons[0];
+    const firstPost = hexletPosts[0];
 
-        return waitFor(() => {
-          expect(postsContainer.getByText(firstPost.title)).toHaveClass('fw-normal');
-          scope.done();
-        });
-      });
+    expect(within(postsContainer).getByText(firstPost.title)).not.toHaveClass('fw-normal');
+
+    userEvent.click(firstPostButton);
+
+    expect(await within(postsContainer).findByText(firstPost.title)).toHaveClass('fw-normal');
+
+    scope.done();
   });
 
-  test('post preview with correct data', () => {
+  test('post preview with correct data', async () => {
     const scope = getNockScope(urls.hexlet, rss.hexlet);
-    const postsContainer = within(elements.postsContainer);
 
-    userEvent.type(elements.input, urls.hexlet);
-    userEvent.click(elements.submit);
+    const postsContainer = screen.getByTestId('posts');
+    const postPreviewModal = screen.getByTestId('postPreviewModal');
 
-    return postsContainer.findAllByRole('button')
-      .then(() => {
-        const previewButtons = postsContainer.getAllByRole('button');
-        const firstPostButton = previewButtons[0];
-        const firstPost = hexletPosts[0];
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.click(screen.getByRole('button', { name: 'add' }));
 
-        expect(elements.postPreviewModal).not.toHaveClass('show');
+    const previewButtons = await within(postsContainer).findAllByText(`${i18nextInstance.t('buttons.postPreview')}`);
 
-        userEvent.click(firstPostButton);
+    const firstPostButton = previewButtons[0];
+    const firstPost = hexletPosts[0];
 
-        return waitFor(() => {
-          expect(elements.postPreviewModal).toHaveClass('show');
+    expect(postPreviewModal).not.toHaveClass('show');
+    userEvent.click(firstPostButton);
 
-          expect(within(elements.postPreviewModal).getByText(firstPost.title)).toBeInTheDocument();
-          expect(
-            within(elements.postPreviewModal).getByText(firstPost.description),
-          ).toBeInTheDocument();
-        });
-      })
-      .then(() => {
-        const modalCloseButton = within(elements.postPreviewModal).getByText(`${i18nextInstance.t('buttons.modal.close')}`);
-        userEvent.click(modalCloseButton);
+    await waitFor(() => {
+      expect(postPreviewModal).toHaveClass('show');
+    });
 
-        return waitFor(() => {
-          expect(elements.postPreviewModal).toHaveClass('show');
-          scope.done();
-        });
-      });
+    expect(within(postPreviewModal).getByText(firstPost.title)).toBeInTheDocument();
+    expect(within(postPreviewModal).getByText(firstPost.description)).toBeInTheDocument();
+
+    scope.done();
   });
 });

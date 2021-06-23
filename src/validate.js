@@ -1,7 +1,7 @@
 import * as yup from 'yup';
 import { errors } from './constants.js';
 
-const isDuplicateFeed = (feeds, url) => feeds
+const isFeedExists = (feeds, url) => feeds
   .find((feed) => feed.url === url) !== undefined;
 
 export default (feeds, value) => {
@@ -10,7 +10,7 @@ export default (feeds, value) => {
   try {
     scheme.validateSync(value);
 
-    if (isDuplicateFeed(feeds, value)) {
+    if (isFeedExists(feeds, value)) {
       throw new Error(errors.form.duplicateRSS);
     }
 

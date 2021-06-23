@@ -1,3 +1,20 @@
+const createFeedItem = (feed) => {
+  const item = document.createElement('li');
+  item.classList.add('list-group-item');
+
+  const title = document.createElement('h3');
+  title.classList.add('h3');
+  title.textContent = feed.title;
+
+  const description = document.createElement('p');
+  description.classList.add('mb-0');
+  description.textContent = feed.description;
+
+  item.append(title, description);
+
+  return item;
+};
+
 export default (state, elements, i18nextInstance) => {
   const { feedsContainer } = elements;
   feedsContainer.innerHTML = '';
@@ -15,23 +32,8 @@ export default (state, elements, i18nextInstance) => {
   const feedsList = document.createElement('ul');
   feedsList.classList.add('list-group');
 
-  const feedListItems = state.feeds.map((feed) => {
-    const item = document.createElement('li');
-    item.classList.add('list-group-item');
+  const feedItems = state.feeds.map(createFeedItem);
 
-    const title = document.createElement('h3');
-    title.classList.add('h3');
-    title.textContent = feed.title;
-
-    const description = document.createElement('p');
-    description.classList.add('mb-0');
-    description.textContent = feed.description;
-
-    item.append(title, description);
-
-    return item;
-  });
-
-  feedsList.append(...feedListItems);
+  feedsList.append(...feedItems);
   feedsContainer.append(header, feedsList);
 };

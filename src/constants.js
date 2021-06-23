@@ -9,6 +9,7 @@ export const errors = {
   app: {
     network: 'network',
     invalidRSS: 'invalidRSS',
+    unknown: 'unknown',
   },
   form: {
     duplicateRSS: 'duplicateRSS',

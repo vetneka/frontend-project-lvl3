@@ -9,6 +9,7 @@ export default {
       app: {
         networkError: 'Network error',
         invalidRSS: 'The resource does not contain a valid RSS',
+        unknown: 'Unknown error',
       },
       form: {
         invalidURL: 'The link must be a valid URL',

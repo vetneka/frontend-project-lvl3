@@ -20,9 +20,7 @@ export default (state, elements, i18nextInstance) => {
   };
 
   const watchedState = onChange(state, (path) => {
-    if (renderMapping[path]) {
-      renderMapping[path]();
-    }
+    renderMapping[path]?.();
   });
 
   return watchedState;

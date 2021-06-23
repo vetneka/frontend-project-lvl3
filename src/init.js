@@ -31,25 +31,24 @@ const normalizePosts = (posts, options = {}) => posts.map((post) => ({
   ...options,
 }));
 
-const loadRssFeed = (url) => axios(getProxyUrl(url))
-  .then((response) => response.data.contents)
-  .catch(() => {
-    throw new Error(errors.app.network);
+const loadRssFeed = (url) => axios.get(getProxyUrl(url))
+  .then((response) => rssParser(response.data.contents))
+  .catch((error) => {
+    throw (error.isAxiosError) ? new Error(errors.app.network) : error;
   });
 
 const loadNewPosts = (feeds) => {
   const requests = feeds.map(({ url }) => loadRssFeed(url));
   return Promise.all(requests)
-    .then((rssFeeds) => rssFeeds.flatMap((rssFeed, index) => {
+    .then((responses) => responses.flatMap(([, posts], index) => {
       const currentFeed = feeds[index];
-      const [, posts] = rssParser(rssFeed);
 
       return normalizePosts(posts, { feedId: currentFeed.id });
     }));
 };
 
 const listenToNewPosts = (watchedState) => {
-  const timeoutMs = 30000;
+  const timeoutMs = 5000;
 
   loadNewPosts(watchedState.feeds)
     .then((newPosts) => {
@@ -65,6 +64,36 @@ const listenToNewPosts = (watchedState) => {
       setTimeout(listenToNewPosts, timeoutMs, watchedState);
     });
 };
+
+const fetchRss = (url, watchedState) => loadRssFeed(url)
+  .then(([feed, posts]) => {
+    const normalizedFeed = normalizeFeed(feed, { url });
+    const normalizedPosts = normalizePosts(posts, { feedId: normalizedFeed.id });
+
+    watchedState.processStateError = null;
+    watchedState.processState = processStates.finished;
+    watchedState.feeds = [normalizedFeed, ...watchedState.feeds];
+    watchedState.posts = [...normalizedPosts, ...watchedState.posts];
+    watchedState.form.processState = processStates.finished;
+  })
+  .catch((error) => {
+    switch (error.message) {
+      case errors.app.network:
+        watchedState.processStateError = errors.app.network;
+        break;
+
+      case errors.app.invalidRSS:
+        watchedState.processStateError = errors.app.invalidRSS;
+        break;
+
+      default:
+        watchedState.processStateError = errors.app.unknown;
+        console.error(`Unknown error type: ${error.message}.`);
+    }
+
+    watchedState.processState = processStates.failed;
+    watchedState.form.processState = processStates.initial;
+  });
 
 export default () => {
   const defaultLanguage = 'ru';
@@ -148,36 +177,7 @@ export default () => {
         return;
       }
 
-      loadRssFeed(rssUrl)
-        .then((data) => {
-          const [feed, posts] = rssParser(data);
-
-          const normalizedFeed = normalizeFeed(feed, { url: rssUrl });
-          const normalizedPosts = normalizePosts(posts, { feedId: normalizedFeed.id });
-
-          watchedState.processStateError = null;
-          watchedState.processState = processStates.finished;
-          watchedState.feeds = [normalizedFeed, ...watchedState.feeds];
-          watchedState.posts = [...normalizedPosts, ...watchedState.posts];
-          watchedState.form.processState = processStates.finished;
-        })
-        .catch((error) => {
-          switch (error.message) {
-            case errors.app.network:
-              watchedState.processStateError = errors.app.network;
-              break;
-
-            case errors.app.invalidRSS:
-              watchedState.processStateError = errors.app.invalidRSS;
-              break;
-
-            default:
-              throw new Error(`Unexpected type error: ${error.message}`);
-          }
-
-          watchedState.processState = processStates.failed;
-          watchedState.form.processState = processStates.initial;
-        });
+      fetchRss(rssUrl, watchedState);
     });
 
     listenToNewPosts(watchedState);
