@@ -42,8 +42,17 @@ const rss = {
   },
 };
 
-const [hexletFeed, hexletPosts] = rssParser(rss.hexlet.contents);
-const [devToFeed, devToPosts] = rssParser(rss.devTo.contents);
+const {
+  title: firstFeedTitle,
+  description: firstFeedDescription,
+  items: hexletPosts,
+} = rssParser(rss.hexlet.contents);
+
+const {
+  title: secondFeedTitle,
+  description: secondFeedDescription,
+  items: devToPosts,
+} = rssParser(rss.devTo.contents);
 
 beforeAll(async () => {
   nock.disableNetConnect();
@@ -167,10 +176,7 @@ describe('check base UI logic', () => {
       .get(getProxyPath(urls.devTo))
       .reply(200, rss.devTo, { 'Access-Control-Allow-Origin': '*' });
 
-    const firstFeed = hexletFeed;
     const firstFeedPost = hexletPosts[0];
-
-    const secondFeed = devToFeed;
     const secondFeedPost = devToPosts[0];
 
     userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
@@ -178,8 +184,8 @@ describe('check base UI logic', () => {
 
     expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
 
-    expect(screen.getByText(firstFeed.title)).toBeInTheDocument();
-    expect(screen.getByText(firstFeed.description)).toBeInTheDocument();
+    expect(screen.getByText(firstFeedTitle)).toBeInTheDocument();
+    expect(screen.getByText(firstFeedDescription)).toBeInTheDocument();
     expect(screen.getByText(firstFeedPost.title)).toBeInTheDocument();
 
     userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.devTo);
@@ -187,8 +193,8 @@ describe('check base UI logic', () => {
 
     expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
 
-    expect(screen.getByText(secondFeed.title)).toBeInTheDocument();
-    expect(screen.getByText(secondFeed.description)).toBeInTheDocument();
+    expect(screen.getByText(secondFeedTitle)).toBeInTheDocument();
+    expect(screen.getByText(secondFeedDescription)).toBeInTheDocument();
     expect(screen.getByText(secondFeedPost.title)).toBeInTheDocument();
 
     const feedListItems = within(screen.getByTestId('feeds')).getAllByRole('listitem');
@@ -197,7 +203,7 @@ describe('check base UI logic', () => {
     expect(feedListItems).toHaveLength(2);
     expect(postsListItems).toHaveLength(4);
 
-    expect(within(feedListItems[0]).getByText(secondFeed.title)).toBeInTheDocument();
+    expect(within(feedListItems[0]).getByText(secondFeedTitle)).toBeInTheDocument();
     expect(within(postsListItems[0]).getByText(secondFeedPost.title)).toBeInTheDocument();
   });
 

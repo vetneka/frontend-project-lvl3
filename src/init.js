@@ -19,10 +19,9 @@ const getProxyUrl = (url) => (
   `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}&disableCache=true`
 );
 
-const normalizeFeed = (feed, options = {}) => ({
+const normalizeFeed = (feed) => ({
   ...feed,
   id: uniqueId(),
-  ...options,
 });
 
 const normalizePosts = (posts, options = {}) => posts.map((post) => ({
@@ -38,10 +37,10 @@ const loadRssFeed = (url) => axios.get(getProxyUrl(url))
 const loadNewPosts = (feeds) => {
   const requests = feeds.map(({ url }) => loadRssFeed(url));
   return Promise.all(requests)
-    .then((responses) => responses.flatMap(([, posts], index) => {
+    .then((responses) => responses.flatMap(({ items }, index) => {
       const currentFeed = feeds[index];
 
-      return normalizePosts(posts, { feedId: currentFeed.id });
+      return normalizePosts(items, { feedId: currentFeed.id });
     }));
 };
 
@@ -91,9 +90,9 @@ const errorHandler = (error, watchedState) => {
 };
 
 const fetchRss = (url, watchedState) => loadRssFeed(url)
-  .then(([feed, posts]) => {
-    const normalizedFeed = normalizeFeed(feed, { url });
-    const normalizedPosts = normalizePosts(posts, { feedId: normalizedFeed.id });
+  .then(({ title, description, items }) => {
+    const normalizedFeed = normalizeFeed({ title, description, url });
+    const normalizedPosts = normalizePosts(items, { feedId: normalizedFeed.id });
 
     watchedState.processStateError = null;
     watchedState.processState = processStates.finished;
