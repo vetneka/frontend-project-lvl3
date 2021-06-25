@@ -33,9 +33,7 @@ const normalizePosts = (posts, options = {}) => posts.map((post) => ({
 
 const loadRssFeed = (url) => axios.get(getProxyUrl(url))
   .then((response) => rssParser(response.data.contents))
-  .catch((error) => {
-    throw (error.isAxiosError) ? new Error(errors.app.network) : error;
-  });
+  .catch((error) => { throw error; });
 
 const loadNewPosts = (feeds) => {
   const requests = feeds.map(({ url }) => loadRssFeed(url));
@@ -69,6 +67,29 @@ const listenToNewPosts = (watchedState) => {
     });
 };
 
+const errorHandler = (error, watchedState) => {
+  const errorMessage = (error.isAxiosError)
+    ? errors.app.network
+    : error.message;
+
+  switch (errorMessage) {
+    case errors.app.network:
+      watchedState.processStateError = errors.app.network;
+      break;
+
+    case errors.app.rssParser:
+      watchedState.processStateError = errors.app.rssParser;
+      break;
+
+    default:
+      watchedState.processStateError = errors.app.unknown;
+      console.error(`Unknown error type: ${error.message}.`);
+  }
+
+  watchedState.processState = processStates.failed;
+  watchedState.form.processState = processStates.initial;
+};
+
 const fetchRss = (url, watchedState) => loadRssFeed(url)
   .then(([feed, posts]) => {
     const normalizedFeed = normalizeFeed(feed, { url });
@@ -81,22 +102,7 @@ const fetchRss = (url, watchedState) => loadRssFeed(url)
     watchedState.form.processState = processStates.finished;
   })
   .catch((error) => {
-    switch (error.message) {
-      case errors.app.network:
-        watchedState.processStateError = errors.app.network;
-        break;
-
-      case errors.app.invalidRSS:
-        watchedState.processStateError = errors.app.invalidRSS;
-        break;
-
-      default:
-        watchedState.processStateError = errors.app.unknown;
-        console.error(`Unknown error type: ${error.message}.`);
-    }
-
-    watchedState.processState = processStates.failed;
-    watchedState.form.processState = processStates.initial;
+    errorHandler(error, watchedState);
   });
 
 export default () => {

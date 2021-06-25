@@ -108,7 +108,7 @@ describe('check interface texts', () => {
     userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
     userEvent.click(screen.getByRole('button', { name: 'add' }));
 
-    expect(screen.getByText(`${i18nextInstance.t('errors.form.duplicateRSS')}`)).toBeInTheDocument();
+    expect(screen.getByText(`${i18nextInstance.t('errors.form.duplicateURL')}`)).toBeInTheDocument();
   });
 
   test('parsing rss', async () => {
@@ -119,7 +119,7 @@ describe('check interface texts', () => {
     userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.invalid);
     userEvent.click(screen.getByRole('button', { name: 'add' }));
 
-    expect(await screen.findByText(`${i18nextInstance.t('errors.app.invalidRSS')}`)).toBeInTheDocument();
+    expect(await screen.findByText(`${i18nextInstance.t('errors.app.rssParser')}`)).toBeInTheDocument();
   });
 
   test('network error', async () => {

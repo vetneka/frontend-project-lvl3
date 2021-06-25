@@ -7,7 +7,7 @@ export default (string) => {
   const error = xmlDOM.querySelector('parsererror');
 
   if (error) {
-    throw new Error(errors.app.invalidRSS);
+    throw new Error(errors.app.rssParser);
   }
 
   const feedTitle = xmlDOM.querySelector('title');

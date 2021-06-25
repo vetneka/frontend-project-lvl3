@@ -8,11 +8,11 @@ export const processStates = {
 export const errors = {
   app: {
     network: 'network',
-    invalidRSS: 'invalidRSS',
+    rssParser: 'rssParser',
     unknown: 'unknown',
   },
   form: {
-    duplicateRSS: 'duplicateRSS',
+    duplicateURL: 'duplicateURL',
     invalidURL: 'invalidURL',
     requiredField: 'requiredField',
   },

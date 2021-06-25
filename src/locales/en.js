@@ -8,13 +8,13 @@ export default {
     errors: {
       app: {
         networkError: 'Network error',
-        invalidRSS: 'The resource does not contain a valid RSS',
+        rssParser: 'The resource does not contain a valid RSS',
         unknown: 'Unknown error',
       },
       form: {
         invalidURL: 'The link must be a valid URL',
         requiredField: 'The field must not be empty',
-        duplicateRSS: 'RSS already exists',
+        duplicateURL: 'RSS already exists',
       },
     },
     headlines: {
