@@ -58,6 +58,10 @@ const listenToNewPosts = (watchedState) => {
         (newPost, oldPost) => newPost.pubDate <= oldPost.pubDate,
       );
 
+      if (!newUniquePosts.length) {
+        return;
+      }
+
       watchedState.posts = [...newUniquePosts, ...watchedState.posts];
     })
     .finally(() => {

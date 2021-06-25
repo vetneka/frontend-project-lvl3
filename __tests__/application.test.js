@@ -67,19 +67,17 @@ beforeEach(async () => {
   await run();
 });
 
-const getNockScope = (url, response = '', responseStatus = 200) => nock(getProxyHost())
-  .get(getProxyPath(url))
-  .reply(responseStatus, response, { 'Access-Control-Allow-Origin': '*' });
-
 describe('check interface texts', () => {
   test('feed added successfully', async () => {
-    const scope = getNockScope(urls.hexlet, rss.hexlet);
+    nock(getProxyHost())
+      .persist()
+      .get(getProxyPath(urls.hexlet))
+      .reply(200, rss.hexlet, { 'Access-Control-Allow-Origin': '*' });
 
     userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
     userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
-    scope.done();
   });
 
   test('validate required', () => {
@@ -97,13 +95,15 @@ describe('check interface texts', () => {
   });
 
   test('validate duplicate rss', async () => {
-    const scope = getNockScope(urls.hexlet, rss.hexlet);
+    nock(getProxyHost())
+      .persist()
+      .get(getProxyPath(urls.hexlet))
+      .reply(200, rss.hexlet, { 'Access-Control-Allow-Origin': '*' });
 
     userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
     userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
-    scope.done();
 
     userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
     userEvent.click(screen.getByRole('button', { name: 'add' }));
@@ -112,29 +112,34 @@ describe('check interface texts', () => {
   });
 
   test('parsing rss', async () => {
-    const scope = getNockScope(urls.invalid, rss.invalid);
+    nock(getProxyHost())
+      .get(getProxyPath(urls.invalid))
+      .reply(200, rss.invalid, { 'Access-Control-Allow-Origin': '*' });
 
     userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.invalid);
     userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(await screen.findByText(`${i18nextInstance.t('errors.app.invalidRSS')}`)).toBeInTheDocument();
-    scope.done();
   });
 
   test('network error', async () => {
-    const scope = getNockScope(urls.hexlet, '', 400);
+    nock(getProxyHost())
+      .get(getProxyPath(urls.invalid))
+      .reply(400, '', { 'Access-Control-Allow-Origin': '*' });
 
-    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
+    userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.invalid);
     userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(await screen.findByText(`${i18nextInstance.t('errors.app.network')}`)).toBeInTheDocument();
-    scope.done();
   });
 });
 
 describe('check base UI logic', () => {
   test('form is disabled while submitting', async () => {
-    const scope = getNockScope(urls.hexlet, '');
+    nock(getProxyHost())
+      .persist()
+      .get(getProxyPath(urls.hexlet))
+      .reply(200, '', { 'Access-Control-Allow-Origin': '*' });
 
     expect(screen.getByRole('textbox', { name: 'url' })).not.toHaveAttribute('readonly');
     expect(screen.getByRole('button', { name: 'add' })).toBeEnabled();
@@ -149,13 +154,18 @@ describe('check base UI logic', () => {
       expect(screen.getByRole('textbox', { name: 'url' })).not.toHaveAttribute('readonly');
       expect(screen.getByRole('button', { name: 'add' })).toBeEnabled();
     });
-
-    scope.done();
   });
 
   test('can add new feeds', async () => {
-    const scope1 = getNockScope(urls.hexlet, rss.hexlet);
-    const scope2 = getNockScope(urls.devTo, rss.devTo);
+    nock(getProxyHost())
+      .persist()
+      .get(getProxyPath(urls.hexlet))
+      .reply(200, rss.hexlet, { 'Access-Control-Allow-Origin': '*' });
+
+    nock(getProxyHost())
+      .persist()
+      .get(getProxyPath(urls.devTo))
+      .reply(200, rss.devTo, { 'Access-Control-Allow-Origin': '*' });
 
     const firstFeed = hexletFeed;
     const firstFeedPost = hexletPosts[0];
@@ -167,7 +177,6 @@ describe('check base UI logic', () => {
     userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
-    scope1.done();
 
     expect(screen.getByText(firstFeed.title)).toBeInTheDocument();
     expect(screen.getByText(firstFeed.description)).toBeInTheDocument();
@@ -177,7 +186,6 @@ describe('check base UI logic', () => {
     userEvent.click(screen.getByRole('button', { name: 'add' }));
 
     expect(await screen.findByText(`${i18nextInstance.t('messages.app.addRSS')}`)).toBeInTheDocument();
-    scope2.done();
 
     expect(screen.getByText(secondFeed.title)).toBeInTheDocument();
     expect(screen.getByText(secondFeed.description)).toBeInTheDocument();
@@ -194,7 +202,11 @@ describe('check base UI logic', () => {
   });
 
   test('mark a post as read', async () => {
-    const scope = getNockScope(urls.hexlet, rss.hexlet);
+    nock(getProxyHost())
+      .persist()
+      .get(getProxyPath(urls.hexlet))
+      .reply(200, rss.hexlet, { 'Access-Control-Allow-Origin': '*' });
+
     const postsContainer = screen.getByTestId('posts');
 
     userEvent.type(screen.getByRole('textbox', { name: 'url' }), urls.hexlet);
@@ -210,12 +222,13 @@ describe('check base UI logic', () => {
     userEvent.click(firstPostButton);
 
     expect(await within(postsContainer).findByText(firstPost.title)).toHaveClass('fw-normal');
-
-    scope.done();
   });
 
   test('post preview with correct data', async () => {
-    const scope = getNockScope(urls.hexlet, rss.hexlet);
+    nock(getProxyHost())
+      .persist()
+      .get(getProxyPath(urls.hexlet))
+      .reply(200, rss.hexlet, { 'Access-Control-Allow-Origin': '*' });
 
     const postsContainer = screen.getByTestId('posts');
     const postPreviewModal = screen.getByTestId('postPreviewModal');
@@ -237,7 +250,5 @@ describe('check base UI logic', () => {
 
     expect(within(postPreviewModal).getByText(firstPost.title)).toBeInTheDocument();
     expect(within(postPreviewModal).getByText(firstPost.description)).toBeInTheDocument();
-
-    scope.done();
   });
 });
