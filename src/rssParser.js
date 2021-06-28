@@ -7,32 +7,31 @@ export default (string) => {
   const error = xmlDOM.querySelector('parsererror');
 
   if (error) {
-    throw new Error(errors.app.invalidRSS);
+    throw new Error(errors.app.rssParser);
   }
 
-  const feedTitle = xmlDOM.querySelector('title');
-  const feedDescription = xmlDOM.querySelector('description');
+  const titleElement = xmlDOM.querySelector('title');
+  const descriptionElement = xmlDOM.querySelector('description');
 
-  const feed = {
-    title: feedTitle.textContent,
-    description: feedDescription.textContent,
-  };
+  const itemsElements = xmlDOM.querySelectorAll('item');
 
-  const feedPosts = xmlDOM.querySelectorAll('item');
-
-  const posts = [...feedPosts].map((feedPost) => {
-    const feedPostTitle = feedPost.querySelector('title');
-    const feedPostLink = feedPost.querySelector('link');
-    const feedPostPubDate = feedPost.querySelector('pubDate');
-    const feedPostDescription = feedPost.querySelector('description');
+  const items = [...itemsElements].map((item) => {
+    const itemTitle = item.querySelector('title');
+    const itemLink = item.querySelector('link');
+    const itemPubDate = item.querySelector('pubDate');
+    const itemDescription = item.querySelector('description');
 
     return {
-      title: feedPostTitle.textContent,
-      link: feedPostLink.textContent,
-      pubDate: new Date(feedPostPubDate.textContent),
-      description: feedPostDescription.textContent,
+      title: itemTitle.textContent,
+      link: itemLink.textContent,
+      pubDate: new Date(itemPubDate.textContent),
+      description: itemDescription.textContent,
     };
   });
 
-  return [feed, posts];
+  return {
+    title: titleElement.textContent,
+    description: descriptionElement.textContent,
+    items,
+  };
 };

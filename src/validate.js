@@ -11,7 +11,7 @@ export default (feeds, value) => {
     scheme.validateSync(value);
 
     if (isFeedExists(feeds, value)) {
-      throw new Error(errors.form.duplicateRSS);
+      throw new Error(errors.form.duplicateURL);
     }
 
     return null;

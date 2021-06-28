@@ -8,13 +8,13 @@ export default {
     errors: {
       app: {
         network: 'Ошибка сети',
-        invalidRSS: 'Ресурс не содержит валидный RSS',
+        rssParser: 'Ресурс не содержит валидный RSS',
         unknown: 'Неизвестная ошибка',
       },
       form: {
         invalidURL: 'Ссылка должна быть валидным URL',
         requiredField: 'Поле не должно быть пустым',
-        duplicateRSS: 'RSS уже существует',
+        duplicateURL: 'RSS уже существует',
       },
     },
     headlines: {
