@@ -15,9 +15,15 @@ import validate from './validate.js';
 
 import initView from './initView.js';
 
-const getProxyUrl = (url) => (
-  `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}&disableCache=true`
-);
+const getProxyUrl = (url) => {
+  const baseUrl = 'https://hexlet-allorigins.herokuapp.com/get';
+
+  const proxyUrl = new URL(baseUrl);
+  proxyUrl.searchParams.set('disableCache', 'true');
+  proxyUrl.searchParams.set('url', url);
+
+  return proxyUrl.toString();
+};
 
 const normalizeFeed = (feed) => ({
   ...feed,
