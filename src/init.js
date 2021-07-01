@@ -8,7 +8,7 @@ import { uniqueId, differenceWith } from 'lodash';
 import i18next from 'i18next';
 import resources from './locales/index.js';
 
-import { processStates, errors } from './constants.js';
+import processStates from './constants.js';
 
 import rssParser from './rssParser.js';
 import validate from './validate.js';
@@ -31,8 +31,7 @@ const normalizePosts = (posts, options = {}) => posts.map((post) => ({
 }));
 
 const loadRssFeed = (url) => axios.get(getProxyUrl(url))
-  .then((response) => rssParser(response.data.contents))
-  .catch((error) => { throw error; });
+  .then((response) => rssParser(response.data.contents));
 
 const loadNewPosts = (feeds) => {
   const requests = feeds.map(({ url }) => loadRssFeed(url));
@@ -66,29 +65,6 @@ const listenToNewPosts = (watchedState) => {
     });
 };
 
-const errorHandler = (error, watchedState) => {
-  const errorMessage = (error.isAxiosError)
-    ? errors.app.network
-    : error.message;
-
-  switch (errorMessage) {
-    case errors.app.network:
-      watchedState.processStateError = errors.app.network;
-      break;
-
-    case errors.app.rssParser:
-      watchedState.processStateError = errors.app.rssParser;
-      break;
-
-    default:
-      watchedState.processStateError = errors.app.unknown;
-      console.error(`Unknown error type: ${error.message}.`);
-  }
-
-  watchedState.processState = processStates.failed;
-  watchedState.form.processState = processStates.initial;
-};
-
 const fetchRss = (url, watchedState) => loadRssFeed(url)
   .then(({ title, description, items }) => {
     const normalizedFeed = normalizeFeed({ title, description, url });
@@ -101,7 +77,17 @@ const fetchRss = (url, watchedState) => loadRssFeed(url)
     watchedState.form.processState = processStates.finished;
   })
   .catch((error) => {
-    errorHandler(error, watchedState);
+    if (error.isAxiosError) {
+      watchedState.processStateError = 'errors.app.network';
+    } else if (error.isParseError) {
+      watchedState.processStateError = 'errors.app.rssParser';
+    } else {
+      watchedState.processStateError = 'errors.app.unknown';
+      console.error(`Unknown error type: ${error.message}.`);
+    }
+
+    watchedState.processState = processStates.failed;
+    watchedState.form.processState = processStates.initial;
   });
 
 export default () => {
@@ -177,7 +163,8 @@ export default () => {
       watchedState.form.processStateError = null;
       watchedState.form.processState = processStates.sending;
 
-      const validateError = validate(watchedState.feeds, rssUrl);
+      const rssUrls = watchedState.feeds.map(({ url }) => url);
+      const validateError = validate(rssUrl, rssUrls);
 
       if (validateError) {
         watchedState.form.valid = false;

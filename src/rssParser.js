@@ -1,13 +1,13 @@
-import { errors } from './constants.js';
-
 export default (string) => {
   const parser = new DOMParser();
   const xmlDOM = parser.parseFromString(string, 'application/xml');
 
-  const error = xmlDOM.querySelector('parsererror');
+  const parseError = xmlDOM.querySelector('parsererror');
 
-  if (error) {
-    throw new Error(errors.app.rssParser);
+  if (parseError) {
+    const error = new Error(parseError.textContent);
+    error.isParseError = true;
+    throw error;
   }
 
   const titleElement = xmlDOM.querySelector('title');
