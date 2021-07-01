@@ -39,11 +39,11 @@ const normalizePosts = (posts, options = {}) => posts.map((post) => ({
 const loadRssFeed = (url) => axios.get(getProxyUrl(url))
   .then((response) => rssParser(response.data.contents));
 
-const loadNewPosts = (feeds) => {
-  const requests = feeds.map(({ url }) => loadRssFeed(url));
+const loadNewPosts = (watchedState) => {
+  const requests = watchedState.rssUrls.map((url) => loadRssFeed(url));
   return Promise.all(requests)
     .then((responses) => responses.flatMap(({ items }, index) => {
-      const currentFeed = feeds[index];
+      const currentFeed = watchedState.feeds[index];
 
       return normalizePosts(items, { feedId: currentFeed.id });
     }));
@@ -52,7 +52,7 @@ const loadNewPosts = (feeds) => {
 const listenToNewPosts = (watchedState) => {
   const timeoutMs = 5000;
 
-  loadNewPosts(watchedState.feeds)
+  loadNewPosts(watchedState)
     .then((newPosts) => {
       const newUniquePosts = differenceWith(
         newPosts,
@@ -73,11 +73,12 @@ const listenToNewPosts = (watchedState) => {
 
 const fetchRss = (url, watchedState) => loadRssFeed(url)
   .then(({ title, description, items }) => {
-    const normalizedFeed = normalizeFeed({ title, description, url });
+    const normalizedFeed = normalizeFeed({ title, description });
     const normalizedPosts = normalizePosts(items, { feedId: normalizedFeed.id });
 
     watchedState.processStateError = null;
     watchedState.processState = processStates.finished;
+    watchedState.rssUrls = [url, ...watchedState.rssUrls];
     watchedState.feeds = [normalizedFeed, ...watchedState.feeds];
     watchedState.posts = [...normalizedPosts, ...watchedState.posts];
     watchedState.form.processState = processStates.finished;
@@ -100,6 +101,7 @@ export default () => {
   const defaultLanguage = 'ru';
 
   const state = {
+    rssUrls: [],
     feeds: [],
     posts: [],
     processStateError: null,
@@ -169,8 +171,7 @@ export default () => {
       watchedState.form.processStateError = null;
       watchedState.form.processState = processStates.sending;
 
-      const rssUrls = watchedState.feeds.map(({ url }) => url);
-      const validateError = validate(rssUrl, rssUrls);
+      const validateError = validate(rssUrl, watchedState.rssUrls);
 
       if (validateError) {
         watchedState.form.valid = false;
