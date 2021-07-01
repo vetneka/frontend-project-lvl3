@@ -3,7 +3,7 @@
 import 'bootstrap/js/dist/modal';
 import * as yup from 'yup';
 import axios from 'axios';
-import { uniqueId, differenceWith } from 'lodash';
+import { uniqueId, differenceWith, isEmpty } from 'lodash';
 
 import i18next from 'i18next';
 import resources from './locales/index.js';
@@ -51,10 +51,10 @@ const listenToNewPosts = (watchedState) => {
       const newUniquePosts = differenceWith(
         newPosts,
         watchedState.posts,
-        (newPost, oldPost) => newPost.pubDate <= oldPost.pubDate,
+        (newPost, oldPost) => newPost.title === oldPost.title,
       );
 
-      if (!newUniquePosts.length) {
+      if (isEmpty(newUniquePosts)) {
         return;
       }
 
