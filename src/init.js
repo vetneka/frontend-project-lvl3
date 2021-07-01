@@ -3,21 +3,27 @@
 import 'bootstrap/js/dist/modal';
 import * as yup from 'yup';
 import axios from 'axios';
-import { uniqueId, differenceWith } from 'lodash';
+import { uniqueId, differenceWith, isEmpty } from 'lodash';
 
 import i18next from 'i18next';
 import resources from './locales/index.js';
 
-import { processStates, errors } from './constants.js';
+import processStates from './constants.js';
 
 import rssParser from './rssParser.js';
 import validate from './validate.js';
 
 import initView from './initView.js';
 
-const getProxyUrl = (url) => (
-  `https://hexlet-allorigins.herokuapp.com/get?url=${encodeURIComponent(url)}&disableCache=true`
-);
+const getProxyUrl = (url) => {
+  const baseUrl = 'https://hexlet-allorigins.herokuapp.com/get';
+
+  const proxyUrl = new URL(baseUrl);
+  proxyUrl.searchParams.set('disableCache', 'true');
+  proxyUrl.searchParams.set('url', url);
+
+  return proxyUrl.toString();
+};
 
 const normalizeFeed = (feed) => ({
   ...feed,
@@ -31,14 +37,13 @@ const normalizePosts = (posts, options = {}) => posts.map((post) => ({
 }));
 
 const loadRssFeed = (url) => axios.get(getProxyUrl(url))
-  .then((response) => rssParser(response.data.contents))
-  .catch((error) => { throw error; });
+  .then((response) => rssParser(response.data.contents));
 
-const loadNewPosts = (feeds) => {
-  const requests = feeds.map(({ url }) => loadRssFeed(url));
+const loadNewPosts = (watchedState) => {
+  const requests = watchedState.rssUrls.map((url) => loadRssFeed(url));
   return Promise.all(requests)
     .then((responses) => responses.flatMap(({ items }, index) => {
-      const currentFeed = feeds[index];
+      const currentFeed = watchedState.feeds[index];
 
       return normalizePosts(items, { feedId: currentFeed.id });
     }));
@@ -47,15 +52,15 @@ const loadNewPosts = (feeds) => {
 const listenToNewPosts = (watchedState) => {
   const timeoutMs = 5000;
 
-  loadNewPosts(watchedState.feeds)
+  loadNewPosts(watchedState)
     .then((newPosts) => {
       const newUniquePosts = differenceWith(
         newPosts,
         watchedState.posts,
-        (newPost, oldPost) => newPost.pubDate <= oldPost.pubDate,
+        (newPost, oldPost) => newPost.title === oldPost.title,
       );
 
-      if (!newUniquePosts.length) {
+      if (isEmpty(newUniquePosts)) {
         return;
       }
 
@@ -66,48 +71,37 @@ const listenToNewPosts = (watchedState) => {
     });
 };
 
-const errorHandler = (error, watchedState) => {
-  const errorMessage = (error.isAxiosError)
-    ? errors.app.network
-    : error.message;
-
-  switch (errorMessage) {
-    case errors.app.network:
-      watchedState.processStateError = errors.app.network;
-      break;
-
-    case errors.app.rssParser:
-      watchedState.processStateError = errors.app.rssParser;
-      break;
-
-    default:
-      watchedState.processStateError = errors.app.unknown;
-      console.error(`Unknown error type: ${error.message}.`);
-  }
-
-  watchedState.processState = processStates.failed;
-  watchedState.form.processState = processStates.initial;
-};
-
 const fetchRss = (url, watchedState) => loadRssFeed(url)
   .then(({ title, description, items }) => {
-    const normalizedFeed = normalizeFeed({ title, description, url });
+    const normalizedFeed = normalizeFeed({ title, description });
     const normalizedPosts = normalizePosts(items, { feedId: normalizedFeed.id });
 
     watchedState.processStateError = null;
     watchedState.processState = processStates.finished;
+    watchedState.rssUrls = [url, ...watchedState.rssUrls];
     watchedState.feeds = [normalizedFeed, ...watchedState.feeds];
     watchedState.posts = [...normalizedPosts, ...watchedState.posts];
     watchedState.form.processState = processStates.finished;
   })
   .catch((error) => {
-    errorHandler(error, watchedState);
+    if (error.isAxiosError) {
+      watchedState.processStateError = 'errors.app.network';
+    } else if (error.isParseError) {
+      watchedState.processStateError = 'errors.app.rssParser';
+    } else {
+      watchedState.processStateError = 'errors.app.unknown';
+      console.error(`Unknown error type: ${error.message}.`);
+    }
+
+    watchedState.processState = processStates.failed;
+    watchedState.form.processState = processStates.initial;
   });
 
 export default () => {
   const defaultLanguage = 'ru';
 
   const state = {
+    rssUrls: [],
     feeds: [],
     posts: [],
     processStateError: null,
@@ -177,7 +171,7 @@ export default () => {
       watchedState.form.processStateError = null;
       watchedState.form.processState = processStates.sending;
 
-      const validateError = validate(watchedState.feeds, rssUrl);
+      const validateError = validate(rssUrl, watchedState.rssUrls);
 
       if (validateError) {
         watchedState.form.valid = false;

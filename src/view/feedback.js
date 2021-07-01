@@ -1,4 +1,4 @@
-import { processStates } from '../constants.js';
+import processStates from '../constants.js';
 
 export default (state, elements, i18nextInstance) => {
   const { messageContainer } = elements;
@@ -7,7 +7,7 @@ export default (state, elements, i18nextInstance) => {
   messageContainer.classList.remove('show', 'text-danger', 'text-success');
 
   if (state.processState === processStates.failed) {
-    messageContainer.textContent = i18nextInstance.t(`errors.app.${state.processStateError}`);
+    messageContainer.textContent = i18nextInstance.t(`${state.processStateError}`);
     messageContainer.classList.add('text-danger', 'show');
   }
 
@@ -17,7 +17,7 @@ export default (state, elements, i18nextInstance) => {
   }
 
   if (state.form.processState === processStates.failed) {
-    messageContainer.textContent = i18nextInstance.t(`errors.form.${state.form.processStateError}`);
+    messageContainer.textContent = i18nextInstance.t(`${state.form.processStateError}`);
     messageContainer.classList.add('text-danger', 'show');
   }
 };

@@ -1,13 +1,13 @@
-import { errors } from './constants.js';
-
 export default (string) => {
   const parser = new DOMParser();
   const xmlDOM = parser.parseFromString(string, 'application/xml');
 
-  const error = xmlDOM.querySelector('parsererror');
+  const parseError = xmlDOM.querySelector('parsererror');
 
-  if (error) {
-    throw new Error(errors.app.rssParser);
+  if (parseError) {
+    const error = new Error(parseError.textContent);
+    error.isParseError = true;
+    throw error;
   }
 
   const titleElement = xmlDOM.querySelector('title');
@@ -18,13 +18,11 @@ export default (string) => {
   const items = [...itemsElements].map((item) => {
     const itemTitle = item.querySelector('title');
     const itemLink = item.querySelector('link');
-    const itemPubDate = item.querySelector('pubDate');
     const itemDescription = item.querySelector('description');
 
     return {
       title: itemTitle.textContent,
       link: itemLink.textContent,
-      pubDate: new Date(itemPubDate.textContent),
       description: itemDescription.textContent,
     };
   });
